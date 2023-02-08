@@ -154,6 +154,8 @@ class Signature
     unsigned _skolem : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
+    /** suggests multi-term induction */
+    unsigned _suggestsMultiTermInduction;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -260,6 +262,9 @@ class Signature
 
     inline void markTuple(){ _tuple = 1; }
     inline bool tupleSort(){ return _tuple; }
+
+    inline void markSuggestsMultiTermInduction(){ _suggestsMultiTermInduction = 1; }
+    inline bool suggestsMultiTermInduction(){ return _suggestsMultiTermInduction; }
 
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }

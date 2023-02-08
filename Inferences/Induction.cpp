@@ -126,7 +126,7 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(TermList r, bool opposi
   CALL("InductionContext::getFormulaWithSquashedSkolems");
 
   const bool strengthenHyp = env.options->inductionStrengthenHypothesis();
-  if (!strengthenHyp) {
+  if (!_strengthenHyp && !strengthenHyp) {
     return getFormula(r, opposite, subst);
   }
   SkolemSquashingTermReplacement tr(getPlaceholderForTerm(_indTerm), r, var);
@@ -289,82 +289,63 @@ ClauseIterator Induction::generateClauses(Clause* premise)
     _structInductionTermIndex, _formulaIndex, _demodulationLhsIndex, _salg->getOrdering()));
 }
 
-bool InductionClauseIterator::isRedundant(Literal* lit)
+bool InductionClauseIterator::isRedundant(const InductionContext& context)
 {
   TIME_TRACE("induction redundancy check");
-  // cout << "checking lit " << *lit << endl;
-  NonVariableNonTypeIterator it(lit);
-  while(it.hasNext()) {
-    TermList trm=it.next();
+  auto ta = env.signature->getTermAlgebraOfSort(SortHelper::getResultSort(context._indTerm));
+  bool multiCons = ta->nConstructors() > 1;
+  for (const auto& kv : context._cls) {
+    for (const auto& lit : kv.second) {
+      // cout << "checking lit " << *lit << endl;
+      NonVariableNonTypeIterator it(lit);
+      while(it.hasNext()) {
+        TermList trm=it.next();
 
-    TermList querySort = SortHelper::getTermSort(trm, lit);
+        TermList querySort = SortHelper::getTermSort(trm, lit);
 
-    bool toplevelCheck=_opt.demodulationRedundancyCheck() && lit->isEquality() &&
-      (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1)) && lit->isPositive();
+        TermQueryResultIterator git=_demodulationLhsIndex->getGeneralizations(trm, true);
+        while(git.hasNext()) {
+          TermQueryResult qr=git.next();
+          ASS_EQ(qr.clause->length(),1);
+          // cout << "candidate " << *qr.clause << endl;
 
-    TermQueryResultIterator git=_demodulationLhsIndex->getGeneralizations(trm, true);
-    while(git.hasNext()) {
-      TermQueryResult qr=git.next();
-      ASS_EQ(qr.clause->length(),1);
-      // cout << "candidate " << *qr.clause << endl;
+          static RobSubstitution subst;
+          bool resultTermIsVar = qr.term.isVar();
+          if(resultTermIsVar){
+            TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+            subst.reset();
+            if(!subst.match(eqSort, 0, querySort, 1)){
+              continue;
+            }
+          }
 
-      static RobSubstitution subst;
-      bool resultTermIsVar = qr.term.isVar();
-      if(resultTermIsVar){
-        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-        subst.reset();
-        if(!subst.match(eqSort, 0, querySort, 1)){
-          continue;
+          TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+          TermList rhsS;
+          ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
+          rhsS=qr.substitution->applyToBoundResult(rhs);
+          if(resultTermIsVar){
+            rhsS = subst.apply(rhsS, 0);
+          }
+
+          // double check this condition
+          if (rhsS.containsSubterm(TermList(context._indTerm))) {
+            continue;
+          }
+
+          if (!multiCons && lit->isEquality() && lit->isPositive() && (qr.clause->length() == 1) &&
+              (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1)))
+          {
+            TermList other=EqHelper::getOtherEqualitySide(lit, trm);
+            Ordering::Result tord=_ord.compare(rhsS, other);
+            if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ
+                && qr.substitution->isRenamingOn(qr.term,true /* is result? */))
+            {
+              continue;
+            }
+          }
+          return true;
         }
       }
-
-      TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-      TermList rhsS;
-      if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
-        //When we apply substitution to the rhs, we get a term, that is
-        //a variant of the term we'd like to get, as new variables are
-        //produced in the substitution application.
-        TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
-        TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
-        Renaming rNorm, qNorm, qDenorm;
-        rNorm.normalizeVariables(lhsSBadVars);
-        qNorm.normalizeVariables(trm);
-        qDenorm.makeInverse(qNorm);
-        ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-        rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-      } else {
-        rhsS=qr.substitution->applyToBoundResult(rhs);
-      }
-      if(resultTermIsVar){
-        rhsS = subst.apply(rhsS, 0);
-      }
-
-      Ordering::Result argOrder = _ord.getEqualityArgumentOrder(qr.literal);
-      bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
-#if VDEBUG
-      if(preordered) {
-        if(argOrder==Ordering::LESS) {
-          ASS_EQ(rhs, *qr.literal->nthArgument(0));
-        }
-        else {
-          ASS_EQ(rhs, *qr.literal->nthArgument(1));
-        }
-      }
-#endif
-      if(!preordered && (_opt.forwardDemodulation()==Options::Demodulation::PREORDERED || _ord.compare(trm,rhsS)!=Ordering::GREATER) ) {
-        continue;
-      }
-
-      if(toplevelCheck) {
-        TermList other=EqHelper::getOtherEqualitySide(lit, trm);
-        Ordering::Result tord=_ord.compare(rhsS, other);
-        if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ
-            && qr.substitution->isRenamingOn(qr.term,true /* is result? */))
-        {
-          continue;
-        }
-      }
-      return true;
     }
   }
   // cout << "not redundant " << *lit << endl;
@@ -610,18 +591,26 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         return false;
       })
       .filter([this](const InductionContext& arg) {
-        for (const auto& kv : arg._cls) {
-          for (const auto& lit : kv.second) {
-            if (isRedundant(lit)) {
-              env.statistics->inductionRedundant++;
-              return false;
-            }
-          }
+        if (isRedundant(arg)) {
+          env.statistics->inductionRedundant++;
+          return false;
         }
         return true;
       });
     while (indCtxIt.hasNext()) {
       auto ctx = indCtxIt.next();
+      for (const auto& kv : ctx._cls) {
+        for (const auto& lit : kv.second) {
+          NonVariableIterator nvi(lit);
+          while (nvi.hasNext()) {
+            auto fn = nvi.next().term()->functor();
+            if (env.signature->getFunction(fn)->suggestsMultiTermInduction()) {
+              ctx._strengthenHyp = true;
+              break;
+            }
+          }
+        }
+      }
       static bool one = _opt.structInduction() == Options::StructuralInductionKind::ONE ||
                         _opt.structInduction() == Options::StructuralInductionKind::ALL;
       static bool two = _opt.structInduction() == Options::StructuralInductionKind::TWO ||

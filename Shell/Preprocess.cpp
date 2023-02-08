@@ -54,6 +54,7 @@
 #include "TheoryFlattening.hpp"
 #include "TweeGoalTransformation.hpp"
 #include "BlockedClauseElimination.hpp"
+#include "InductionPreprocessor.hpp"
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
@@ -448,6 +449,10 @@ void Preprocess::preprocess(Problem& prb)
        env.out() << "flipping polarities" << std::endl;
 
      Shuffling::polarityFlip(prb);
+   }
+
+   if (_options.induction()!=Options::Induction::NONE) {
+     InductionPreprocessor::preprocess(prb);
    }
 
    if (env.options->showPreprocessing()) {

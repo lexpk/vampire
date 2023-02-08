@@ -743,12 +743,17 @@ bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* insta
       return true;
     }
     auto instanceUpperBound = instance->getRewritingUpperBound();
+    static unsigned skipped = 0;
     // TODO do this for lower bounds
     // auto instanceLowerBound = instance->getRewritingLowerBound();
     if (!baseUpperBound) {
       return true;
     }
     if (!instanceUpperBound) {
+      skipped++;
+      if (skipped % 1000 == 0) {
+        cout << "skipped2 " << skipped << endl;
+      }
       return false;
     }
     vunordered_map<unsigned, TermList> binder;
@@ -759,6 +764,10 @@ bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* insta
       auto v = vit.next();
       if (!binder.count(v.var())) {
         // possibly losing inferences, so we don't match
+        skipped++;
+        if (skipped % 1000 == 0) {
+          cout << "skipped2 " << skipped << endl;
+        }
         return false;
       }
     }

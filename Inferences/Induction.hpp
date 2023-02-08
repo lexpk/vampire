@@ -101,6 +101,7 @@ struct InductionContext {
   // would be storing indices but then we need to pass around the
   // clause as well.
   vunordered_map<Clause*, LiteralStack> _cls;
+  bool _strengthenHyp = false;
 private:
   Formula* getFormula(TermReplacement& tr, bool opposite) const;
 };
@@ -218,7 +219,7 @@ private:
 
   bool notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e);
 
-  bool isRedundant(Literal* lit);
+  bool isRedundant(const InductionContext& context);
 
   Stack<Clause*> _clauses;
   InductionHelper _helper;

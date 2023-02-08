@@ -562,6 +562,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
     Shell/GoalGuessing.cpp
+    Shell/InductionPreprocessor.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/Interpolants.cpp
@@ -615,6 +616,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
     Shell/GeneralSplitting.hpp
+    Shell/InductionPreprocessor.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
     Shell/Interpolants.hpp

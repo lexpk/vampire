@@ -235,6 +235,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
   auto& ord = _salg->getOrdering();
+  static unsigned skipped = 0;
 
   for (unsigned li = 0; li < clen; li++) {
     SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, true);
@@ -259,11 +260,19 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             }
           }
           if (nope) {
+            skipped++;
+            if (skipped % 1000 == 0) {
+              cout << "skipped " << skipped << endl;
+            }
             continue;
           }
           auto baseUpperBoundS = qr.substitution->applyToBoundResult(TermList(baseUpperBound));
           auto comp = ord.compare(baseUpperBoundS, TermList(instanceUpperBound));
           if (comp == Ordering::Result::LESS || comp == Ordering::Result::LESS_EQ) {
+            skipped++;
+            if (skipped % 1000 == 0) {
+              cout << "skipped " << skipped << endl;
+            }
             continue;
           }
         }

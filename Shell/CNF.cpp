@@ -90,6 +90,9 @@ void CNF::clausify (Formula* f)
           FormulaTransformation(InferenceRule::CLAUSIFY,_unit));
       for (int i = length-1;i >= 0;i--) {
 	(*clause)[i] = _literals[i];
+        // if (_unit->isForLemmaGeneration() && _literals[i]->isEquality() && _literals[i]->isPositive()) {
+        //   _literals[i]->markForLemmaGeneration();
+        // }
       }
       _result->push(clause);
     }

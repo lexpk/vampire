@@ -100,7 +100,7 @@ bool isClauseRewritable(const Options& opt, Clause* premise, bool forward)
   if (premise->isPureTheoryDescendant()) {
     return false;
   }
-  if (!forward && !opt.nonUnitInduction() &&
+  if (!forward && (!opt.nonUnitInduction() || opt.splitting()) &&
     (!InductionHelper::isInductionClause(premise) || !InductionHelper::isInductionLiteral((*premise)[0])))
   {
     return false;

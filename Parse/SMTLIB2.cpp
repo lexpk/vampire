@@ -265,7 +265,7 @@ if (ibRdr.tryAcceptAtom("non-erasing") || ibRdr.tryAcceptAtom("injective")) {
       continue;
     }
 
-    if (ibRdr.tryAcceptAtom("assert-lg")) {
+    if (ibRdr.tryAcceptAtom("assert-lemma")) {
       if (!ibRdr.hasNext()) {
         USER_ERROR("assert expects a body");
       }

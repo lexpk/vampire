@@ -295,6 +295,9 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
   auto ta = env.signature->getTermAlgebraOfSort(SortHelper::getResultSort(context._indTerm));
   bool multiCons = ta->nConstructors() > 1;
   for (const auto& kv : context._cls) {
+    if (kv.first->inference().rule() != InferenceRule::INDUCTION_UPWARD_PARAMODULATION) {
+      continue;
+    }
     for (const auto& lit : kv.second) {
       // cout << "checking lit " << *lit << endl;
       NonVariableNonTypeIterator it(lit);

@@ -107,15 +107,15 @@ public:
   CLASS_NAME(InductionRewriting);
   USE_ALLOCATOR(InductionRewriting);
 
-  InductionRewriting(bool forward) : _forward(forward) {}
+  InductionRewriting(bool downward) : _downward(downward) {}
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   ClauseIterator generateClauses(Clause* premise) override;
   void output();
 
-  static LitArgPairIter getTermIterator(Clause* premise, const Options& opt, Ordering& ord, bool forward);
-  static LitArgPairIter getLHSIterator(Clause* premise, const Options& opt, Ordering& ord, bool forward);
+  static LitArgPairIter getTermIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward);
+  static LitArgPairIter getLHSIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward);
 
 private:
   ClauseIterator perform(
@@ -131,7 +131,7 @@ private:
   TermIndex* _lhsIndex;
   TermIndex* _termIndex;
   DHMap<Clause*, unsigned> _eqs;
-  bool _forward;
+  bool _downward;
 };
 
 class InductionSGIWrapper
@@ -142,10 +142,10 @@ public:
   USE_ALLOCATOR(InductionSGIWrapper);
 
   InductionSGIWrapper(GeneratingInferenceEngine* induction,
-      InductionRewriting* fwRewriting,
-      InductionRewriting* bwRewriting,
+      InductionRewriting* dwRewriting,
+      InductionRewriting* uwRewriting,
       SimplifyingGeneratingInference* generator)
-    : _induction(induction), _fwRewriting(fwRewriting), _bwRewriting(bwRewriting), _generator(generator) {}
+    : _induction(induction), _dwRewriting(dwRewriting), _uwRewriting(uwRewriting), _generator(generator) {}
 
   ClauseGenerationResult generateSimplify(Clause* premise) override;
 
@@ -159,8 +159,8 @@ public:
   }
 private:
   GeneratingInferenceEngine* _induction;
-  InductionRewriting* _fwRewriting;
-  InductionRewriting* _bwRewriting;
+  InductionRewriting* _dwRewriting;
+  InductionRewriting* _uwRewriting;
   ScopedPtr<SimplifyingGeneratingInference> _generator;
 };
 

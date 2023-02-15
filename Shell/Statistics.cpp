@@ -70,10 +70,10 @@ Statistics::Statistics()
     theoryInstSimpTautologies(0),
     theoryInstSimpLostSolution(0),
     theoryInstSimpEmptySubstitution(0),
-    forwardInductionForwardRewriting(0),
-    backwardInductionForwardRewriting(0),
-    forwardInductionBackwardRewriting(0),
-    backwardInductionBackwardRewriting(0),
+    forwardDownwardParamodulation(0),
+    backwardDownwardParamodulation(0),
+    forwardUpwardParamodulation(0),
+    backwardUpwardParamodulation(0),
     inductionRedundant(0),
     maxInductionDepth(0),
     structInduction(0),
@@ -391,10 +391,10 @@ void Statistics::print(ostream& out)
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
   COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
   COND_OUT("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
-  COND_OUT("ForwardInductionBackwardRewriting", forwardInductionBackwardRewriting);
-  COND_OUT("BackwardInductionBackwardRewriting", backwardInductionBackwardRewriting);
-  COND_OUT("ForwardInductionForwardRewriting",forwardInductionForwardRewriting);
-  COND_OUT("BackwardInductionForwardRewriting", backwardInductionForwardRewriting);
+  COND_OUT("ForwardDownwardParamodulation", forwardDownwardParamodulation);
+  COND_OUT("BackwardDownwardParamodulation", backwardDownwardParamodulation);
+  COND_OUT("ForwardUpwardParamodulation", forwardUpwardParamodulation);
+  COND_OUT("BackwardUpwardParamodulation", backwardUpwardParamodulation);
   COND_OUT("InductionRedundant", inductionRedundant);
   // COND_OUT("Induction",induction);
   COND_OUT("MaxInductionDepth",maxInductionDepth);

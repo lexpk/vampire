@@ -1468,6 +1468,24 @@ void Options::init()
     _inductionEquationalLemmaGeneration.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionEquationalLemmaGeneration);
 
+    _symmetryBreakingParamodulation = BoolOptionValue("symmetry_breaking_paramodulation","sbp",false);
+    _symmetryBreakingParamodulation.description = "";
+    _symmetryBreakingParamodulation.tag(OptionTag::INFERENCES);
+    _symmetryBreakingParamodulation.reliesOn(_inductionEquationalLemmaGeneration.is(notEqual(LemmaGeneration::NONE)));
+    _lookup.insert(&_symmetryBreakingParamodulation);
+
+    _inductionRedundancyCheck = BoolOptionValue("induction_redundancy_check","irc",false);
+    _inductionRedundancyCheck.description = "";
+    _inductionRedundancyCheck.tag(OptionTag::INFERENCES);
+    _inductionRedundancyCheck.reliesOn(_inductionEquationalLemmaGeneration.is(notEqual(LemmaGeneration::NONE)));
+    _lookup.insert(&_inductionRedundancyCheck);
+
+    _lemmaGenerationHeuristics = BoolOptionValue("lemma_generation_heuristics","lgh",false);
+    _lemmaGenerationHeuristics.description = "";
+    _lemmaGenerationHeuristics.tag(OptionTag::INFERENCES);
+    _lemmaGenerationHeuristics.reliesOn(_inductionEquationalLemmaGeneration.is(notEqual(LemmaGeneration::NONE)));
+    _lookup.insert(&_lemmaGenerationHeuristics);
+
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
     _instantiation.tag(OptionTag::INFERENCES);

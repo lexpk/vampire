@@ -152,19 +152,19 @@ public:
   CLASS_NAME(RewritingLHSIndex);
   USE_ALLOCATOR(RewritingLHSIndex);
 
-  RewritingLHSIndex(TermIndexingStructure* is, const Options& opt, Ordering& ord, bool forward)
-  : TermIndex(is), _opt(opt), _ord(ord), _forward(forward) {}
+  RewritingLHSIndex(TermIndexingStructure* is, const Options& opt, Ordering& ord, bool downward)
+  : TermIndex(is), _opt(opt), _ord(ord), _downward(downward) {}
 
   void onAddedToContainer(Clause* c) override
   {
-    if (!_forward || !c->getRewritingLowerBound()) {
+    if (!_downward || !c->getRewritingLowerBound()) {
       handleClause(c, true);
     }
   }
 
   void onRemovedFromContainer(Clause* c) override
   {
-    if (!_forward || !c->getRewritingLowerBound()) {
+    if (!_downward || !c->getRewritingLowerBound()) {
       handleClause(c, false);
     }
   }
@@ -174,7 +174,7 @@ protected:
 private:
   const Options& _opt;
   Ordering& _ord;
-  bool _forward;
+  bool _downward;
 };
 
 /**
@@ -187,19 +187,19 @@ public:
   CLASS_NAME(RewritingSubtermIndex);
   USE_ALLOCATOR(RewritingSubtermIndex);
 
-  RewritingSubtermIndex(TermIndexingStructure* is, const Options& opt, Ordering& ord, bool forward)
-  : TermIndex(is), _opt(opt), _ord(ord), _forward(forward) {}
+  RewritingSubtermIndex(TermIndexingStructure* is, const Options& opt, Ordering& ord, bool downward)
+  : TermIndex(is), _opt(opt), _ord(ord), _downward(downward) {}
 
   void onAddedToContainer(Clause* c) override
   {
-    if (!_forward || !c->getRewritingLowerBound()) {
+    if (!_downward || !c->getRewritingLowerBound()) {
       handleClause(c, true);
     }
   }
 
   void onRemovedFromContainer(Clause* c) override
   {
-    if (!_forward || !c->getRewritingLowerBound()) {
+    if (!_downward || !c->getRewritingLowerBound()) {
       handleClause(c, false);
     }
   }
@@ -209,7 +209,7 @@ protected:
 private:
   const Options& _opt;
   Ordering& _ord;
-  bool _forward;
+  bool _downward;
 };
 
 /**

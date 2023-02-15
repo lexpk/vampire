@@ -1582,14 +1582,14 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   //TODO here induction is last, is that right?
   Induction* induction = nullptr;
-  InductionRewriting* inductionBackwardRewriting = nullptr;
-  InductionRewriting* inductionForwardRewriting = nullptr;
+  InductionRewriting* inductionDownwardRewriting = nullptr;
+  InductionRewriting* inductionUpwardRewriting = nullptr;
   if(opt.induction()!=Options::Induction::NONE){
     if (env.options->inductionEquationalLemmaGeneration()!=Options::LemmaGeneration::NONE) {
-      inductionBackwardRewriting = new InductionRewriting(false);
-      inductionForwardRewriting = new InductionRewriting(true);
-      gie->addFront(inductionBackwardRewriting);
-      gie->addFront(inductionForwardRewriting);
+      inductionDownwardRewriting = new InductionRewriting(true /*downward*/);
+      inductionUpwardRewriting = new InductionRewriting(false /*downward*/);
+      gie->addFront(inductionDownwardRewriting);
+      gie->addFront(inductionUpwardRewriting);
     }
     induction = new Induction();
     gie->addFront(induction);
@@ -1708,7 +1708,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
 
   if (env.options->inductionEquationalLemmaGeneration()!=Options::LemmaGeneration::NONE) {
-    res->setGeneratingInferenceEngine(new InductionSGIWrapper(induction, inductionForwardRewriting, inductionBackwardRewriting, sgi));
+    res->setGeneratingInferenceEngine(new InductionSGIWrapper(induction, inductionDownwardRewriting, inductionUpwardRewriting, sgi));
   } else {
     res->setGeneratingInferenceEngine(sgi);
   }

@@ -125,10 +125,10 @@ public:
   /** number of theoryInstSimp application where an empty substitution was applied */
   unsigned theoryInstSimpEmptySubstitution;
   /** number of induction applications **/
-  unsigned forwardInductionForwardRewriting;
-  unsigned backwardInductionForwardRewriting;
-  unsigned forwardInductionBackwardRewriting;
-  unsigned backwardInductionBackwardRewriting;
+  unsigned forwardDownwardParamodulation;
+  unsigned backwardDownwardParamodulation;
+  unsigned forwardUpwardParamodulation;
+  unsigned backwardUpwardParamodulation;
   unsigned inductionRedundant;
   unsigned maxInductionDepth;
   unsigned structInduction;

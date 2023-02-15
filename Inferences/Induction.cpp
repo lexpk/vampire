@@ -591,7 +591,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         return false;
       })
       .filter([this](const InductionContext& arg) {
-        if (isRedundant(arg)) {
+        if (_opt.inductionRedundancyCheck() && isRedundant(arg)) {
           env.statistics->inductionRedundant++;
           return false;
         }

@@ -193,7 +193,7 @@ void RewritingLHSIndex::handleClause(Clause* c, bool adding)
 
   TIME_TRACE("induction rewriting index maintenance");
 
-  auto it = InductionRewriting::getLHSIterator(c, _opt, _ord, _forward);
+  auto it = InductionRewriting::getLHSIterator(c, _opt, _ord, _downward);
   while (it.hasNext()) {
     auto kv = it.next();
     auto lit = kv.first;
@@ -213,7 +213,7 @@ void RewritingSubtermIndex::handleClause(Clause* c, bool adding)
 
   TIME_TRACE("induction rewriting index maintenance");
 
-  auto it = InductionRewriting::getTermIterator(c, _opt, _ord, _forward);
+  auto it = InductionRewriting::getTermIterator(c, _opt, _ord, _downward);
   while (it.hasNext()) {
     auto kv = it.next();
     if (kv.second.isVar()) {

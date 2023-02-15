@@ -2355,6 +2355,9 @@ public:
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
   LemmaGeneration inductionEquationalLemmaGeneration() const { return _inductionEquationalLemmaGeneration.actualValue; }
+  bool symmetryBreakingParamodulation() const { return _symmetryBreakingParamodulation.actualValue; }
+  bool inductionRedundancyCheck() const { return _inductionRedundancyCheck.actualValue; }
+  bool lemmaGenerationHeuristics() const { return _lemmaGenerationHeuristics.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2670,6 +2673,9 @@ private:
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
   BoolOptionValue _nonUnitInduction;
   ChoiceOptionValue<LemmaGeneration> _inductionEquationalLemmaGeneration;
+  BoolOptionValue _symmetryBreakingParamodulation;
+  BoolOptionValue _lemmaGenerationHeuristics;
+  BoolOptionValue _inductionRedundancyCheck;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

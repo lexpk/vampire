@@ -28,6 +28,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
@@ -48,7 +49,7 @@ Term* getPlaceholderForTerm(Term* t)
 {
   CALL("getPlaceholderForTerm");
   static DHMap<TermList,Term*> placeholders;
-  TermList srt = env.signature->getFunction(t->functor())->fnType()->result();
+  TermList srt = SortHelper::getResultSort(t);
   if(!placeholders.find(srt)){
     unsigned fresh = env.signature->addFreshFunction(0,(srt.toString() + "_placeholder").c_str());
     env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
@@ -252,6 +253,7 @@ void Induction::attach(SaturationAlgorithm* salg) {
   CALL("Induction::attach");
 
   GeneratingInferenceEngine::attach(salg);
+  _postponement.attach(salg);
   if (InductionHelper::isIntInductionOneOn()) {
     _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
@@ -278,6 +280,7 @@ void Induction::detach() {
     _inductionTermIndex = nullptr;
     _salg->getIndexManager()->release(INDUCTION_TERM_INDEX);
   }
+  _postponement.detach();
   GeneratingInferenceEngine::detach();
 }
 
@@ -286,7 +289,7 @@ ClauseIterator Induction::generateClauses(Clause* premise)
   CALL("Induction::generateClauses");
 
   return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex), getOptions(),
-    _structInductionTermIndex, _formulaIndex, _demodulationLhsIndex, _salg->getOrdering()));
+    _structInductionTermIndex, _formulaIndex, _demodulationLhsIndex, _salg->getOrdering(), _salg->getSplitter(), _postponement));
 }
 
 bool InductionClauseIterator::isRedundant(const InductionContext& context)
@@ -363,7 +366,9 @@ void InductionClauseIterator::processClause(Clause* premise)
   // or it should be an integer constant comparison we use as a bound.
   if (InductionHelper::isInductionClause(premise)) {
     for (unsigned i=0;i<premise->length();i++) {
-      processLiteral(premise,(*premise)[i]);
+      auto lit = (*premise)[i];
+      processLiteral(premise,lit);
+      _postponement.checkForPostponedInductions(lit, premise, *this);
     }
   }
   if (InductionHelper::isIntInductionOneOn() && InductionHelper::isIntegerComparison(premise)) {
@@ -465,6 +470,38 @@ private:
   Literal* _lit;
 };
 
+void InductionClauseIterator::generateStructuralFormulas(InductionContext context, InductionFormulaIndex::Entry* e)
+{
+  CALL("InductionClauseIterator::generateStructuralFormulas");
+  for (const auto& kv : context._cls) {
+    for (const auto& lit : kv.second) {
+      NonVariableIterator nvi(lit);
+      while (nvi.hasNext()) {
+        auto fn = nvi.next().term()->functor();
+        if (env.signature->getFunction(fn)->suggestsMultiTermInduction()) {
+          context._strengthenHyp = true;
+          break;
+        }
+      }
+    }
+  }
+  static bool one = _opt.structInduction() == Options::StructuralInductionKind::ONE ||
+                    _opt.structInduction() == Options::StructuralInductionKind::ALL;
+  static bool two = _opt.structInduction() == Options::StructuralInductionKind::TWO ||
+                    _opt.structInduction() == Options::StructuralInductionKind::ALL;
+  static bool three = _opt.structInduction() == Options::StructuralInductionKind::THREE ||
+                    _opt.structInduction() == Options::StructuralInductionKind::ALL;
+  if(one){
+    performStructInductionOne(context,e);
+  }
+  if(two){
+    performStructInductionTwo(context,e);
+  }
+  if(three){
+    performStructInductionThree(context,e);
+  }
+}
+
 void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
   CALL("Induction::ClauseIterator::processLiteral");
@@ -482,13 +519,14 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       NonVariableNonTypeIterator it(lit);
       while(it.hasNext()){
         TermList ts = it.next();
-        unsigned f = ts.term()->functor(); 
-        if(InductionHelper::isInductionTermFunctor(f)){
-          if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionFunctor(f)){
-            ta_terms.insert(ts.term());
+        auto t = ts.term();
+
+        if(InductionHelper::isInductionTermFunctor(t->functor())){
+          if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionTerm(t)){
+            ta_terms.insert(t);
           }
           if(InductionHelper::isIntInductionOneOn() && InductionHelper::isIntInductionTermListInLiteral(ts, lit)){
-            int_terms.insert(ts.term());
+            int_terms.insert(t);
           }
         }
       }
@@ -602,36 +640,14 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       });
     while (indCtxIt.hasNext()) {
       auto ctx = indCtxIt.next();
-      for (const auto& kv : ctx._cls) {
-        for (const auto& lit : kv.second) {
-          NonVariableIterator nvi(lit);
-          while (nvi.hasNext()) {
-            auto fn = nvi.next().term()->functor();
-            if (env.signature->getFunction(fn)->suggestsMultiTermInduction()) {
-              ctx._strengthenHyp = true;
-              break;
-            }
-          }
-        }
-      }
-      static bool one = _opt.structInduction() == Options::StructuralInductionKind::ONE ||
-                        _opt.structInduction() == Options::StructuralInductionKind::ALL;
-      static bool two = _opt.structInduction() == Options::StructuralInductionKind::TWO ||
-                        _opt.structInduction() == Options::StructuralInductionKind::ALL;
-      static bool three = _opt.structInduction() == Options::StructuralInductionKind::THREE ||
-                        _opt.structInduction() == Options::StructuralInductionKind::ALL;
       InductionFormulaIndex::Entry* e;
+      auto shouldGenerate = _formulaIndex.findOrInsert(ctx, e);
+      if (_postponement.maybePostpone(ctx, e)) {
+        continue;
+      }
       // generate formulas and add them to index if not done already
-      if (_formulaIndex.findOrInsert(ctx, e)) {
-        if(one){
-          performStructInductionOne(ctx,e);
-        }
-        if(two){
-          performStructInductionTwo(ctx,e);
-        }
-        if(three){
-          performStructInductionThree(ctx,e);
-        }
+      if (shouldGenerate) {
+        generateStructuralFormulas(ctx, e);
       }
       // resolve the formulas with the premises
       for (auto& kv : e->get()) {
@@ -703,15 +719,11 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
 ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context)
 {
   CALL("InductionClauseIterator::produceClauses");
+  TIME_TRACE("induction clause production");
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
-  unsigned maxInductionDepth = 0;
-  for (const auto& kv : context._cls) {
-    maxInductionDepth = max(maxInductionDepth,kv.first->inference().inductionDepth());
-  }
-  inf.setInductionDepth(maxInductionDepth+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   if(_opt.showInduction()){
     env.beginOutput();
@@ -976,14 +988,21 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   ASS(cls.isNonEmpty());
   bool generalized = false;
   for (const auto& kv : context._cls) {
-    for (const auto& lit : kv.second) {
-      if (lit->containsSubterm(TermList(context._indTerm))) {
-        generalized = true;
-        break;
-      }
+    // we have to check these due to postponed inductions
+    if (kv.first->store() == Clause::NONE ||
+        (_splitter && !_splitter->allSplitLevelsActive(kv.first->splits())))
+    {
+      // Either this clause will be never activated again and we don't
+      // need the corresponding induction or else we can redo it the normal way
+      return;
     }
-    if (generalized) {
-      break;
+    if (!generalized) {
+      for (const auto& lit : kv.second) {
+        if (lit->containsSubterm(TermList(context._indTerm))) {
+          generalized = true;
+          break;
+        }
+      }
     }
   }
   if (generalized) {
@@ -1127,8 +1146,9 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
 {
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(context._indTerm->functor())->fnType()->result());
-  TermList ta_sort = ta->sort();
+  TermList sort = SortHelper::getResultSort(context._indTerm);
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+  unsigned numTypeArgs = sort.term()->arity();
 
   FormulaList* formulas = FormulaList::empty();
 
@@ -1138,12 +1158,13 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
   for(unsigned i=0;i<ta->nConstructors();i++){
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
-      Stack<TermList> argTerms;
-      Stack<TermList> ta_vars;
-      for(unsigned j=0;j<arity;j++){
+      TermStack argTerms(arity);
+      argTerms.loadFromIterator(Term::Iterator(sort.term()));
+      TermStack ta_vars;
+      for(unsigned j=numTypeArgs;j<arity;j++){
         TermList x(var,false);
         var++;
-        if(con->argSort(j) == ta_sort){
+        if(con->argSort(j) == con->rangeSort()){
           ta_vars.push(x);
         }
         argTerms.push(x);
@@ -1152,7 +1173,7 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
       auto right = context.getFormulaWithSquashedSkolems(
         TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())), true, var);
       FormulaList* args = FormulaList::empty();
-      Stack<TermList>::Iterator tvit(ta_vars);
+      TermStack::Iterator tvit(ta_vars);
       while(tvit.hasNext()){
         auto hypVars = VList::empty();
         auto hyp = context.getFormulaWithSquashedSkolems(tvit.next(),true,var,&hypVars);
@@ -1186,8 +1207,9 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
 {
   CALL("InductionClauseIterator::performStructInductionTwo"); 
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(context._indTerm->functor())->fnType()->result());
-  TermList ta_sort = ta->sort();
+  TermList sort = SortHelper::getResultSort(context._indTerm);
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+  unsigned numTypeArgs = sort.term()->arity();
 
   // make L[y]
   TermList y(0,false); 
@@ -1207,22 +1229,26 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
     if(con->recursive()){
   
       // First generate all argTerms and remember those that are of sort ta_sort 
-      Stack<TermList> argTerms;
-      Stack<TermList> taTerms; 
-      for(unsigned j=0;j<arity;j++){
-        unsigned dj = con->destructorFunctor(j);
-        TermList djy(Term::create1(dj,y));
+      TermStack argTerms(arity);
+      argTerms.loadFromIterator(Term::Iterator(sort.term()));
+      TermStack taTerms;
+      for(unsigned j=numTypeArgs;j<arity;j++){
+        unsigned dj = con->destructorFunctor(j-numTypeArgs);
+        TermStack dargTerms(numTypeArgs+1);
+        dargTerms.loadFromIterator(Term::Iterator(sort.term()));
+        dargTerms.push(y);
+        TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
         argTerms.push(djy);
-        if(con->argSort(j) == ta_sort){
+        if(con->argSort(j) == con->rangeSort()){
           taTerms.push(djy);
         }
       }
       ASS(taTerms.isNonEmpty());
       // create y = con1(...d1(y)...d2(y)...)
       TermList coni(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
-      Literal* kneq = Literal::createEquality(true,y,coni,ta_sort);
+      Literal* kneq = Literal::createEquality(true,y,coni,con->rangeSort());
       FormulaList* And = FormulaList::empty(); 
-      Stack<TermList>::Iterator tit(taTerms);
+      TermStack::Iterator tit(taTerms);
       while(tit.hasNext()){
         TermList djy = tit.next();
         auto hypVars = VList::empty();
@@ -1267,8 +1293,9 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(context._indTerm->functor())->fnType()->result());
-  TermList ta_sort = ta->sort();
+  TermList sort = SortHelper::getResultSort(context._indTerm);
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+  unsigned numTypeArgs = sort.term()->arity();
 
   // make L[y]
   TermList x(0,false); 
@@ -1281,7 +1308,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 
   // make smallerThanY
   unsigned sty = env.signature->addFreshPredicate(1,"smallerThan");
-  env.signature->getPredicate(sty)->setType(OperatorType::getPredicateType({ta_sort}));
+  env.signature->getPredicate(sty)->setType(OperatorType::getPredicateType({sort}));
 
   // make ( y = con_i(..dec(y)..) -> smaller(dec(y)))  for each constructor 
   FormulaList* conjunction = FormulaList::singleton(Ly);
@@ -1291,17 +1318,22 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 
     if(con->recursive()){
       // First generate all argTerms and remember those that are of sort ta_sort 
-      Stack<TermList> argTerms;
-      Stack<TermList> taTerms; 
+      TermStack argTerms(arity);
+      argTerms.loadFromIterator(Term::Iterator(sort.term()));
+      TermStack taTerms;
       Stack<unsigned> ta_vars;
-      Stack<TermList> varTerms;
-      for(unsigned j=0;j<arity;j++){
-        unsigned dj = con->destructorFunctor(j);
-        TermList djy(Term::create1(dj,y));
+      TermStack varTerms(arity);
+      varTerms.loadFromIterator(Term::Iterator(sort.term()));
+      for(unsigned j=numTypeArgs;j<arity;j++){
+        unsigned dj = con->destructorFunctor(j-numTypeArgs);
+        TermStack dargTerms(numTypeArgs+1);
+        dargTerms.loadFromIterator(Term::Iterator(sort.term()));
+        dargTerms.push(y);
+        TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
         argTerms.push(djy);
         TermList xj(vars,false);
         varTerms.push(xj);
-        if(con->argSort(j) == ta_sort){
+        if(con->argSort(j) == con->rangeSort()){
           taTerms.push(djy);
           ta_vars.push(vars);
         }
@@ -1309,7 +1341,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
       }
       // create y = con1(...d1(y)...d2(y)...)
       TermList coni(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
-      Literal* kneq = Literal::createEquality(true,y,coni,ta_sort);
+      Literal* kneq = Literal::createEquality(true,y,coni,sort);
 
       // create smaller(cons(x1,..,xn))
       Formula* smaller_coni = new AtomicFormula(Literal::create1(sty,true,
@@ -1326,7 +1358,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 
       // now create a conjunction of smaller(d(y)) for each d
       FormulaList* And = FormulaList::empty(); 
-      Stack<TermList>::Iterator tit(taTerms);
+      TermStack::Iterator tit(taTerms);
       while(tit.hasNext()){
         Formula* f = new AtomicFormula(Literal::create1(sty,true,tit.next()));
         FormulaList::push(f,And);

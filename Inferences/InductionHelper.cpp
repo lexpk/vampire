@@ -262,14 +262,14 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
       termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessComp()));
 }
 
-bool InductionHelper::isStructInductionFunctor(unsigned f) {
-  CALL("InductionHelper::isStructInductionFunctor");
+bool InductionHelper::isStructInductionTerm(Term* t) {
+  CALL("InductionHelper::isStructInductionTerm");
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return (env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result()) &&
+  return (env.signature->isTermAlgebraSort(SortHelper::getResultSort(t)) &&
            // skip base constructors even if induction on complex terms is on:
-          ((complexTermsAllowed && env.signature->functionArity(f) != 0) ||
+          ((complexTermsAllowed && env.signature->functionArity(t->functor()) != 0) ||
            // otherwise skip all constructors:
-           !env.signature->getFunction(f)->termAlgebraCons())
+           !env.signature->getFunction(t->functor())->termAlgebraCons())
          );
 }
 

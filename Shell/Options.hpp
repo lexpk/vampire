@@ -2358,6 +2358,7 @@ public:
   bool symmetryBreakingParamodulation() const { return _symmetryBreakingParamodulation.actualValue; }
   bool inductionRedundancyCheck() const { return _inductionRedundancyCheck.actualValue; }
   bool lemmaGenerationHeuristics() const { return _lemmaGenerationHeuristics.actualValue; }
+  bool inductionPostponement() const { return _inductionPostponement.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2676,6 +2677,7 @@ private:
   BoolOptionValue _symmetryBreakingParamodulation;
   BoolOptionValue _lemmaGenerationHeuristics;
   BoolOptionValue _inductionRedundancyCheck;
+  BoolOptionValue _inductionPostponement;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

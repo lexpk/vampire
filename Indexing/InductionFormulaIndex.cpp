@@ -22,19 +22,20 @@ namespace Indexing
 using namespace Lib;
 using namespace Inferences;
 
-Key InductionFormulaIndex::represent(const InductionContext& context)
+InductionFormulaKey InductionFormulaIndex::represent(const InductionContext& context)
 {
   // all literals are ground and they are unique for
   // a specific induction context, so we order them
   // and index the set of sets of literals
   // TODO: It might be good to specialize for unit literals/clauses/etc.
-  Key k;
+  InductionFormulaKey k;
+  k.first = getPlaceholderForTerm(context._indTerm)->functor();
   for (const auto& kv : context._cls) {
     LiteralStack lits = kv.second;
     sort(lits.begin(), lits.end());
-    k.first.push(lits);
+    k.second.first.push(lits);
   }
-  sort(k.first.begin(), k.first.end(), [](const LiteralStack& lhs, const LiteralStack& rhs) {
+  sort(k.second.first.begin(), k.second.first.end(), [](const LiteralStack& lhs, const LiteralStack& rhs) {
     if (lhs.size() != rhs.size()) {
       return lhs.size() < rhs.size();
     }
@@ -53,11 +54,11 @@ Key InductionFormulaIndex::represent(const InductionContext& context)
  */
 bool InductionFormulaIndex::findOrInsert(const InductionContext& context, Entry*& e, Literal* bound1, Literal* bound2)
 {
-  CALL("InductionFormulaIndex::insert");
+  CALL("InductionFormulaIndex::findOrInsert");
   ASS(!context._cls.empty());
   auto k = represent(context);
-  k.second.first = bound1;
-  k.second.second = bound2;
+  k.second.second.first = bound1;
+  k.second.second.second = bound2;
   return _map.getValuePtr(std::move(k), e);
 }
 

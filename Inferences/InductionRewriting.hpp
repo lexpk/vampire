@@ -47,7 +47,7 @@ inline bool hasTermToInductOn(Term* t, Literal* l) {
   while (stit.hasNext()) {
     auto st = stit.next();
     if (InductionHelper::isInductionTermFunctor(st.term()->functor()) &&
-      ((structInd && !termAlgebraFunctor(st.term()->functor()) && InductionHelper::isStructInductionFunctor(st.term()->functor())) ||
+      ((structInd && !termAlgebraFunctor(st.term()->functor()) && InductionHelper::isStructInductionTerm(st.term())) ||
        (intInd && InductionHelper::isIntInductionTermListInLiteral(st, l))))
     {
       return true;

@@ -155,6 +155,8 @@ public:
   unsigned inductionApplicationInProof;
   unsigned generalizedInductionApplication;
   unsigned generalizedInductionApplicationInProof;
+  unsigned postponedInductions;
+  unsigned postponedInductionApplications;
   /** number of argument congruences */
   unsigned argumentCongruence;
   unsigned narrow;

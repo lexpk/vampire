@@ -121,6 +121,41 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void InductionPostponementLHSIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("InductionPostponementLHSIndex::handleClause");
+
+  for (unsigned i=0; i<c->length(); i++) {
+    Literal* lit=(*c)[i];
+    if (!lit->isEquality() || lit->isNegative()) {
+      continue;
+    }
+    for (unsigned j=0; j<2; j++) {
+      auto lhs = *lit->nthArgument(j);
+      if (lhs.isVar()) {
+        continue;
+      }
+      bool hasCtor = false;
+      NonVariableNonTypeIterator nvi(lhs.term(), true);
+      while (nvi.hasNext()) {
+        auto t = nvi.next();
+        if (env.signature->getFunction(t.term()->functor())->termAlgebraCons()) {
+          hasCtor = true;
+          break;
+        }
+      }
+      if (!hasCtor) {
+        continue;
+      }
+      if (adding) {
+        _is->insert(lhs, lit, c);
+      } else {
+        _is->remove(lhs, lit, c);
+      }
+    }
+  }
+}
+
 template <bool combinatorySupSupport>
 void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c, bool adding)
 {
@@ -286,7 +321,7 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
       }
       ASS(tl.isTerm());
       if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
-          InductionHelper::isStructInductionFunctor(tl.term()->functor())) {
+          InductionHelper::isStructInductionTerm(tl.term())) {
         if (adding) {
           _is->insert(tl, lit, c);
         } else {

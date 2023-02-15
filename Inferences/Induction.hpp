@@ -33,12 +33,14 @@
 
 #include "InductionHelper.hpp"
 #include "InferenceEngine.hpp"
+#include "InductiveReasoning/InductionPostponement.hpp"
 
 namespace Inferences
 {
 
 using namespace Kernel;
 using namespace Saturation;
+using namespace InductiveReasoning;
 
 Term* getPlaceholderForTerm(Term* t);
 
@@ -79,6 +81,13 @@ struct InductionContext {
   Formula* getFormula(TermList r, bool opposite, Substitution* subst = nullptr) const;
   Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr) const;
+  LiteralIterator iterLits() const {
+    auto res = LiteralIterator::getEmpty();
+    for (const auto& kv : _cls) {
+      res = pvi(getConcatenatedIterator(res, kv.second.iter()));
+    }
+    return res;
+  }
 
   vstring toString() const {
     vstringstream str;
@@ -156,6 +165,10 @@ public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
 
+  Induction()
+    : _formulaIndex(),
+      _postponement(_formulaIndex) {}
+
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
@@ -176,6 +189,7 @@ private:
   TermIndex* _structInductionTermIndex = nullptr;
   InductionFormulaIndex _formulaIndex;
   TermIndex* _demodulationLhsIndex = nullptr;
+  InductionPostponement _postponement;
 };
 
 class InductionClauseIterator
@@ -184,9 +198,10 @@ public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
     TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex,
-    TermIndex* demodulationLhsIndex, const Ordering& ord)
+    TermIndex* demodulationLhsIndex, const Ordering& ord, Splitter* splitter, InductionPostponement& postponement)
       : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex),
-      _formulaIndex(formulaIndex), _demodulationLhsIndex(demodulationLhsIndex), _ord(ord)
+      _formulaIndex(formulaIndex), _demodulationLhsIndex(demodulationLhsIndex), _ord(ord),
+      _splitter(splitter), _postponement(postponement)
   {
     processClause(premise);
   }
@@ -199,6 +214,8 @@ public:
   inline OWN_ELEMENT_TYPE next() { 
     return _clauses.pop();
   }
+  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
+  void generateStructuralFormulas(InductionContext context, InductionFormulaIndex::Entry* e);
 
 private:
   void processClause(Clause* premise);
@@ -207,7 +224,6 @@ private:
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
-  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
   void performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub);
   void performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound);
@@ -228,6 +244,8 @@ private:
   InductionFormulaIndex& _formulaIndex;
   TermIndex* _demodulationLhsIndex;
   const Ordering& _ord;
+  Splitter* _splitter;
+  InductionPostponement& _postponement;
 };
 
 };

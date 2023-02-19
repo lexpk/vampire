@@ -74,6 +74,7 @@ Statistics::Statistics()
     backwardDownwardParamodulation(0),
     forwardUpwardParamodulation(0),
     backwardUpwardParamodulation(0),
+    inductionResolution(0),
     inductionRedundant(0),
     maxInductionDepth(0),
     structInduction(0),
@@ -438,6 +439,7 @@ void Statistics::print(ostream& out)
   COND_OUT("BackwardDownwardParamodulation", backwardDownwardParamodulation);
   COND_OUT("ForwardUpwardParamodulation", forwardUpwardParamodulation);
   COND_OUT("BackwardUpwardParamodulation", backwardUpwardParamodulation);
+  COND_OUT("InductionResolution", inductionResolution);
   COND_OUT("InductionRedundant", inductionRedundant);
   SEPARATOR;
 

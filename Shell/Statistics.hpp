@@ -129,6 +129,7 @@ public:
   unsigned backwardDownwardParamodulation;
   unsigned forwardUpwardParamodulation;
   unsigned backwardUpwardParamodulation;
+  unsigned inductionResolution;
   unsigned inductionRedundant;
   unsigned maxInductionDepth;
   unsigned structInduction;

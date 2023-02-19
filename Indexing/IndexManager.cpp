@@ -203,24 +203,29 @@ Index* IndexManager::create(IndexType t)
     res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
-  case FORWARD_REWRITING_SUBTERM_INDEX:
+  case DOWNWARD_REWRITING_SUBTERM_INDEX:
     tis=new TermSubstitutionTree();
     res=new RewritingSubtermIndex(tis, _alg->getOptions(), _alg->getOrdering(), true);
     isGenerating = true;
     break;
-  case FORWARD_REWRITING_LHS_INDEX:
+  case DOWNWARD_REWRITING_LHS_INDEX:
     tis=new TermSubstitutionTree();
     res=new RewritingLHSIndex(tis, _alg->getOptions(), _alg->getOrdering(), true);
     isGenerating = true;
     break;
-  case BACKWARD_REWRITING_SUBTERM_INDEX:
+  case UPWARD_REWRITING_SUBTERM_INDEX:
     tis=new TermSubstitutionTree();
     res=new RewritingSubtermIndex(tis, _alg->getOptions(), _alg->getOrdering(), false);
     isGenerating = true;
     break;
-  case BACKWARD_REWRITING_LHS_INDEX:
+  case UPWARD_REWRITING_LHS_INDEX:
     tis=new TermSubstitutionTree();
     res=new RewritingLHSIndex(tis, _alg->getOptions(), _alg->getOrdering(), false);
+    isGenerating = true;
+    break;
+  case INDUCTION_LITERAL_INDEX:
+    is=new LiteralSubstitutionTree(useConstraints);
+    res=new InductionResolutionIndex(is, _alg->getOrdering());
     isGenerating = true;
     break;
 

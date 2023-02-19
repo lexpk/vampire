@@ -25,6 +25,7 @@
 
 #include "InductionHelper.hpp"
 
+#include "InductionResolution.hpp"
 #include "InductionRewriting.hpp"
 
 namespace Inferences {
@@ -61,10 +62,23 @@ Literal* SingleOccurrenceReplacementIterator::next()
 bool isTermViolatingBound(Term* bound, TermList t, Ordering& ord, bool downward)
 {
   CALL("isTermViolatingBound");
+  ASS(t.isTerm());
   if (!bound) {
     return false;
   }
-  auto comp = ord.compare(TermList(bound), TermList(t));
+  if (bound->isLiteral() && !t.term()->isLiteral()) {
+    return true;
+  }
+  if (!bound->isLiteral() && t.term()->isLiteral()) {
+    return false;
+  }
+  ASS_EQ(bound->isLiteral(),t.term()->isLiteral());
+  Ordering::Result comp;
+  if (bound->isLiteral()) {
+    comp = ord.compare(static_cast<Literal*>(bound),static_cast<Literal*>(t.term()));
+  } else {
+    comp = ord.compare(TermList(bound), TermList(t));
+  }
   if (comp == Ordering::Result::EQUAL) {
     static unsigned cnt = 0;
     cnt++;
@@ -95,11 +109,14 @@ LitArgPairIter getIterator(Ordering& ord, Clause* premise, bool downward)
   }
   return pvi(iterTraits(premise->iterLits())
     .flatMap([](Literal* lit) {
-      return pvi(pushPairIntoRightIterator(lit, termArgIter(lit)));
+      if (lit->isEquality()) {
+        return pvi(pushPairIntoRightIterator(lit, termArgIter(lit)));
+      }
+      return pvi(pushPairIntoRightIterator(lit, getSingletonIterator(TermList(lit))));
     })
     // filter out ones violating the bound
     .filter([bound,&ord,downward](LitArgPair kv) {
-      return !isTermViolatingBound(bound, kv.second, ord, downward);
+      return kv.second.isTerm() && !isTermViolatingBound(bound, kv.second, ord, downward);
     }));
 }
 
@@ -117,6 +134,8 @@ bool isClauseRewritable(const Options& opt, Clause* premise)
 bool areEqualitySidesOriented(TermList lhs, TermList rhs, Ordering& ord, bool downward)
 {
   CALL("InductionRewriting::areTermsOriented");
+  ASS(lhs.isVar() || !lhs.term()->isLiteral());
+  ASS(rhs.isVar() || !rhs.term()->isLiteral());
 
   auto comp = ord.compare(rhs,lhs);
   if (downward && Ordering::isGorGEorE(comp)) {
@@ -185,18 +204,18 @@ void InductionRewriting::attach(SaturationAlgorithm* salg)
   CALL("InductionRewriting::attach");
   GeneratingInferenceEngine::attach(salg);
   _lhsIndex=static_cast<TermIndex*>(
-	  _salg->getIndexManager()->request(_downward ? FORWARD_REWRITING_LHS_INDEX : BACKWARD_REWRITING_LHS_INDEX) );
+	  _salg->getIndexManager()->request(_downward ? DOWNWARD_REWRITING_LHS_INDEX : UPWARD_REWRITING_LHS_INDEX) );
   _termIndex=static_cast<TermIndex*>(
-	  _salg->getIndexManager()->request(_downward ? FORWARD_REWRITING_SUBTERM_INDEX : BACKWARD_REWRITING_SUBTERM_INDEX) );
+	  _salg->getIndexManager()->request(_downward ? DOWNWARD_REWRITING_SUBTERM_INDEX : UPWARD_REWRITING_SUBTERM_INDEX) );
 }
 
 void InductionRewriting::detach()
 {
   CALL("InductionRewriting::detach");
   _termIndex = 0;
-  _salg->getIndexManager()->release(_downward ? FORWARD_REWRITING_SUBTERM_INDEX : BACKWARD_REWRITING_SUBTERM_INDEX);
+  _salg->getIndexManager()->release(_downward ? DOWNWARD_REWRITING_SUBTERM_INDEX : UPWARD_REWRITING_SUBTERM_INDEX);
   _lhsIndex = 0;
-  _salg->getIndexManager()->release(_downward ? FORWARD_REWRITING_LHS_INDEX : BACKWARD_REWRITING_LHS_INDEX);
+  _salg->getIndexManager()->release(_downward ? DOWNWARD_REWRITING_LHS_INDEX : UPWARD_REWRITING_LHS_INDEX);
   GeneratingInferenceEngine::detach();
 }
 
@@ -212,7 +231,7 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
       if (kv.second.isVar()) {
         return VirtualIterator<pair<LitArgPair, TermList>>::getEmpty();
       }
-      NonVariableNonTypeIterator it(kv.second.term(), true);
+      NonVariableNonTypeIterator it(kv.second.term(), !kv.second.term()->isLiteral());
       return pvi( pushPairIntoRightIterator(kv, getUniquePersistentIteratorFromPtr(&it)) );
     })
     .flatMap([this](pair<LitArgPair, TermList> arg) {
@@ -231,7 +250,10 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
       return pvi( pushPairIntoRightIterator(make_pair(kv.first, TermList(kv.second)), _termIndex->getUnifications(TermList(kv.second), true)) );
     })
     .flatMap([](pair<pair<Literal*, TermList>, TermQueryResult> arg) {
-      return pvi( pushPairIntoRightIterator(arg, termArgIter(arg.second.literal)) );
+      if (arg.second.literal->isEquality()) {
+        return pvi(pushPairIntoRightIterator(arg, termArgIter(arg.second.literal)));
+      }
+      return pvi(pushPairIntoRightIterator(arg, getSingletonIterator(TermList(arg.second.literal))));
     })
     .map([](pair<pair<pair<Literal*, TermList>, TermQueryResult>, TermList> arg) {
       return make_pair(make_pair(make_pair(arg.first.first.first, arg.second), arg.first.first.second), arg.first.second);
@@ -261,14 +283,15 @@ TermList getRewrittenTerm(Literal* oldLit, Literal* newLit) {
     ASS(lhsNew == rhsOld || rhsNew == rhsOld);
     return lhsOld;
   } else {
-    for (unsigned i = 0; i < oldLit->arity(); i++) {
-      auto oldArg = *oldLit->nthArgument(i);
-      auto newArg = *newLit->nthArgument(i);
-      if (oldArg != newArg) {
-        return oldArg;
-      }
-    }
-    ASSERTION_VIOLATION;
+    return TermList(oldLit);
+    // for (unsigned i = 0; i < oldLit->arity(); i++) {
+    //   auto oldArg = *oldLit->nthArgument(i);
+    //   auto newArg = *newLit->nthArgument(i);
+    //   if (oldArg != newArg) {
+    //     return oldArg;
+    //   }
+    // }
+    // ASSERTION_VIOLATION;
   }
 }
 
@@ -470,31 +493,6 @@ bool InductionRewriting::filterByHeuristics(
   }
 
   return false;
-}
-
-SimplifyingGeneratingInference::ClauseGenerationResult InductionSGIWrapper::generateSimplify(Clause* premise)
-{
-  CALL("InductionSGIWrapper::generateSimplify");
-  // static unsigned cnt = 0;
-  // cnt++;
-  // if (cnt % 1000 == 0) {
-  //   _dwRewriting->output();
-  //   _uwRewriting->output();
-  // }
-  if (!premise->getRewritingLowerBound() && !premise->getRewritingUpperBound()) {
-    return _generator->generateSimplify(premise);
-  }
-  ASS(!premise->getRewritingLowerBound() || !premise->getRewritingUpperBound());
-  auto it = ClauseIterator::getEmpty();
-  if (premise->getRewritingUpperBound()) {
-    it = pvi(getConcatenatedIterator(it, _dwRewriting->generateClauses(premise)));
-  }
-  return ClauseGenerationResult {
-    .clauses = pvi(iterTraits(it).concat(
-      _induction->generateClauses(premise),
-      _uwRewriting->generateClauses(premise))),
-    .premiseRedundant = false,
-  };
 }
 
 }

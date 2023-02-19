@@ -107,36 +107,6 @@ private:
   bool _downward;
 };
 
-class InductionSGIWrapper
-: public SimplifyingGeneratingInference
-{
-public:
-  CLASS_NAME(InductionSGIWrapper);
-  USE_ALLOCATOR(InductionSGIWrapper);
-
-  InductionSGIWrapper(GeneratingInferenceEngine* induction,
-      InductionRewriting* dwRewriting,
-      InductionRewriting* uwRewriting,
-      SimplifyingGeneratingInference* generator)
-    : _induction(induction), _dwRewriting(dwRewriting), _uwRewriting(uwRewriting), _generator(generator) {}
-
-  ClauseGenerationResult generateSimplify(Clause* premise) override;
-
-  void attach(SaturationAlgorithm* salg) override
-  {
-    _generator->attach(salg);
-  }
-  void detach() override
-  {
-    _generator->detach();
-  }
-private:
-  GeneratingInferenceEngine* _induction;
-  InductionRewriting* _dwRewriting;
-  InductionRewriting* _uwRewriting;
-  ScopedPtr<SimplifyingGeneratingInference> _generator;
-};
-
 }
 
-#endif /*__InductionRemodulation__*/
+#endif /*__InductionRewriting__*/

@@ -254,7 +254,7 @@ void RewritingSubtermIndex::handleClause(Clause* c, bool adding)
     if (kv.second.isVar()) {
       continue;
     }
-    NonVariableNonTypeIterator nvi(kv.second.term(), true);
+    NonVariableNonTypeIterator nvi(kv.second.term(), !kv.second.term()->isLiteral());
     while (nvi.hasNext()) {
       auto st = nvi.next();
       if (adding) {

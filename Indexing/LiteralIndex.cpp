@@ -24,6 +24,8 @@
 #include "LiteralIndexingStructure.hpp"
 #include "LiteralSubstitutionTree.hpp"
 
+#include "Inferences/InductionResolution.hpp"
+
 #include "LiteralIndex.hpp"
 
 namespace Indexing
@@ -93,6 +95,18 @@ void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
     if (!lit->isEquality()) {
       handleLiteral(lit, c, adding);
     }
+  }
+}
+
+void InductionResolutionIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("InductionResolutionIndex::handleClause");
+
+  auto it = Inferences::InductionResolution::getIterator(_ord, c);
+  while (it.hasNext()) {
+    auto lit = it.next();
+    ASS(!lit->isEquality());
+    handleLiteral(lit, c, adding);
   }
 }
 

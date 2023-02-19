@@ -360,6 +360,8 @@ enum class InferenceRule : unsigned char {
 
   INDUCTION_UPWARD_PARAMODULATION,
 
+  INDUCTION_RESOLUTION,
+
   INTERNAL_GENERATING_INFERNCE_LAST,
 
   /** equality proxy replacement */

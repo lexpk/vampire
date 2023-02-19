@@ -83,7 +83,9 @@
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
+#include "Inferences/InductionResolution.hpp"
 #include "Inferences/InductionRewriting.hpp"
+#include "Inferences/InductionSGIWrapper.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/CombinatorDemodISE.hpp"
@@ -1582,12 +1584,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   //TODO here induction is last, is that right?
   Induction* induction = nullptr;
+  InductionResolution* inductionResolution = nullptr;
   InductionRewriting* inductionDownwardRewriting = nullptr;
   InductionRewriting* inductionUpwardRewriting = nullptr;
   if(opt.induction()!=Options::Induction::NONE){
     if (env.options->inductionEquationalLemmaGeneration()!=Options::LemmaGeneration::NONE) {
+      // inductionResolution = new InductionResolution();
       inductionDownwardRewriting = new InductionRewriting(true /*downward*/);
       inductionUpwardRewriting = new InductionRewriting(false /*downward*/);
+      // gie->addFront(inductionResolution);
       gie->addFront(inductionDownwardRewriting);
       gie->addFront(inductionUpwardRewriting);
     }
@@ -1708,7 +1713,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
 
   if (env.options->inductionEquationalLemmaGeneration()!=Options::LemmaGeneration::NONE) {
-    res->setGeneratingInferenceEngine(new InductionSGIWrapper(induction, inductionDownwardRewriting, inductionUpwardRewriting, sgi));
+    res->setGeneratingInferenceEngine(new InductionSGIWrapper(induction, inductionResolution,
+      inductionDownwardRewriting, inductionUpwardRewriting, sgi));
   } else {
     res->setGeneratingInferenceEngine(sgi);
   }

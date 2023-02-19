@@ -412,7 +412,9 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/EquationalTautologyRemoval.cpp
     Inferences/InductiveReasoning/InductionPostponement.cpp
     Inferences/Induction.cpp
+    Inferences/InductionResolution.cpp
     Inferences/InductionRewriting.cpp
+    Inferences/InductionSGIWrapper.cpp
     Inferences/InductionHelper.cpp
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
@@ -446,7 +448,9 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/GlobalSubsumption.hpp
     Inferences/HyperSuperposition.hpp
     Inferences/Induction.hpp
+    Inferences/InductionResolution.hpp
     Inferences/InductionRewriting.hpp
+    Inferences/InductionSGIWrapper.hpp
     Inferences/InductionHelper.hpp
     Inferences/InnerRewriting.hpp
     Inferences/EquationalTautologyRemoval.hpp

@@ -745,6 +745,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "induction downward paramodulation";
   case InferenceRule::INDUCTION_UPWARD_PARAMODULATION:
     return "induction upward paramodulation";
+  case InferenceRule::INDUCTION_RESOLUTION:
+    return "induction resolution";
   case InferenceRule::CONSTRAINED_FACTORING:
     return "constrained factoring";
   case InferenceRule::SUBSUMPTION_RESOLUTION:

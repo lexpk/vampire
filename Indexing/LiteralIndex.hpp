@@ -20,6 +20,7 @@
 
 #include "Index.hpp"
 
+#include "Inferences/InductionSGIWrapper.hpp"
 
 namespace Indexing {
 
@@ -68,6 +69,35 @@ public:
   : LiteralIndex(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
+};
+
+class InductionResolutionIndex
+: public LiteralIndex
+{
+public:
+  CLASS_NAME(InductionResolutionIndex);
+  USE_ALLOCATOR(InductionResolutionIndex);
+
+  InductionResolutionIndex(LiteralIndexingStructure* is, Ordering& ord)
+  : LiteralIndex(is), _ord(ord) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+
+  void onAddedToContainer(Clause* c) override
+  {
+    if (!c->getRewritingLowerBound()) {
+      handleClause(c, true);
+    }
+  }
+
+  void onRemovedFromContainer(Clause* c) override
+  {
+    if (!c->getRewritingLowerBound()) {
+      handleClause(c, false);
+    }
+  }
+
+  Ordering& _ord;
 };
 
 class BackwardSubsumptionIndex

@@ -33,6 +33,8 @@
 #include "Shell/SMTLIBLogic.hpp"
 #include "Shell/TermAlgebra.hpp"
 
+#include "Inferences/InductionRewriting.hpp"
+
 #include "SMTLIB2.hpp"
 
 #include "TPTP.hpp"
@@ -307,6 +309,12 @@ if (ibRdr.tryAcceptAtom("non-erasing") || ibRdr.tryAcceptAtom("injective")) {
 
       ibRdr.acceptEOL();
 
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("theory-lemmas")) {
+      Inferences::InductionRewriting::markTheoryAxiomsForLemmaGeneration();
+      ibRdr.acceptEOL();
       continue;
     }
 

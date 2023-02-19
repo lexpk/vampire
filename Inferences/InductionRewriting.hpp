@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __InductionRemodulation__
-#define __InductionRemodulation__
+#ifndef __InductionRewriting__
+#define __InductionRewriting__
 
 #include "Forwards.hpp"
 
@@ -34,34 +34,6 @@ namespace Inferences
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-
-inline bool termAlgebraFunctor(unsigned functor) {
-  auto sym = env.signature->getFunction(functor);
-  return sym->termAlgebraCons() || sym->termAlgebraDest();
-}
-
-inline bool hasTermToInductOn(Term* t, Literal* l) {
-  static const bool intInd = InductionHelper::isIntInductionOn();
-  static const bool structInd = InductionHelper::isStructInductionOn();
-  NonVariableIterator stit(t);
-  while (stit.hasNext()) {
-    auto st = stit.next();
-    if (InductionHelper::isInductionTermFunctor(st.term()->functor()) &&
-      ((structInd && !termAlgebraFunctor(st.term()->functor()) && InductionHelper::isStructInductionTerm(st.term())) ||
-       (intInd && InductionHelper::isIntInductionTermListInLiteral(st, l))))
-    {
-      return true;
-    }
-  }
-  return false;
-}
-
-inline bool shouldRewriteEquality(Literal* lit, Clause* cl, Ordering& ord) {
-  return iterTraits(EqHelper::getLHSIterator(lit,ord))
-    .any([lit](TermList side) {
-      return side.isTerm() && !hasTermToInductOn(side.term(),lit);
-    });
-}
 
 class SingleOccurrenceReplacementIterator : public IteratorCore<Literal*> {
 public:
@@ -116,6 +88,7 @@ public:
 
   static LitArgPairIter getTermIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward);
   static LitArgPairIter getLHSIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward);
+  static void markTheoryAxiomsForLemmaGeneration();
 
 private:
   ClauseIterator perform(

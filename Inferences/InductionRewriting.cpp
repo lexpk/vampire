@@ -32,6 +32,8 @@ namespace Inferences {
 using namespace Lib;
 using namespace Kernel;
 
+static bool k_theoryAxiomsForLemmaGeneration = false;
+
 // iterators and filters
 
 TermList SingleOccurrenceReplacementIterator::Replacer::transformSubterm(TermList trm)
@@ -101,24 +103,12 @@ LitArgPairIter getIterator(Ordering& ord, Clause* premise, bool downward)
     }));
 }
 
-bool isClauseRewritable(const Options& opt, Clause* premise, bool downward)
+bool isClauseRewritable(const Options& opt, Clause* premise)
 {
   CALL("InductionRewriting::isClauseRewritable");
-  if (premise->isPureTheoryDescendant()) {
-    return false;
-  }
-  if (!downward && (!opt.nonUnitInduction() || opt.splitting()) &&
+  if ((!opt.nonUnitInduction() || opt.splitting()) &&
     (!InductionHelper::isInductionClause(premise) || !InductionHelper::isInductionLiteral((*premise)[0])))
   {
-    return false;
-  }
-  return true;
-}
-
-bool canClauseRewrite(Clause* premise)
-{
-  CALL("InductionRewriting::canClauseRewrite");
-  if (premise->isPureTheoryDescendant()) {
     return false;
   }
   return true;
@@ -138,7 +128,7 @@ bool areEqualitySidesOriented(TermList lhs, TermList rhs, Ordering& ord, bool do
   return true;
 }
 
-bool canUseLHSForRewrite(LitArgPair kv, Clause* premise, bool downward)
+bool canUseLHSForRewrite(LitArgPair kv, Clause* premise)
 {
   CALL("InductionRewriting::canUseLHSForRewrite");
   auto lhs = kv.second;
@@ -150,50 +140,30 @@ bool canUseLHSForRewrite(LitArgPair kv, Clause* premise, bool downward)
   {
     return false;
   }
-  // lhs contains only things we cannot induct on
-  auto lit = kv.first;
-  auto rhs = EqHelper::getOtherEqualitySide(lit, TermList(lhs));
-  if (!downward && premise->length() == 1 && rhs.isTerm() && !hasTermToInductOn(rhs.term(), lit)) {
-    return false;
-  }
   return true;
 }
 
-bool canUseTermForRewrite(Clause* premise, LitArgPair kv, Ordering& ord, bool downward)
+void InductionRewriting::markTheoryAxiomsForLemmaGeneration()
 {
-  CALL("InductionRewriting::canUseTermForRewrite");
-  if (downward && !kv.first->ground() && kv.first->isEquality() &&
-    !areEqualitySidesOriented(
-      TermList(kv.second),
-      EqHelper::getOtherEqualitySide(kv.first, TermList(kv.second)),
-      ord, downward))
-  {
-    return false;
-  }
-  return true;
+  k_theoryAxiomsForLemmaGeneration = true;
 }
 
 LitArgPairIter InductionRewriting::getTermIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward)
 {
   CALL("InductionRewriting::getTermIterator");
-  if (!isClauseRewritable(opt, premise, downward)) {
+  if (!isClauseRewritable(opt, premise)) {
     return LitArgPairIter::getEmpty();
   }
-  return pvi(iterTraits(getIterator(ord, premise, downward))
-    .filter([premise,&ord,downward](LitArgPair kv) {
-      return canUseTermForRewrite(premise, kv, ord, downward);
-    }));
+  return pvi(iterTraits(getIterator(ord, premise, downward)));
 }
 
 LitArgPairIter InductionRewriting::getLHSIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward)
 {
   CALL("InductionRewriting::getLHSIterator");
-  if (!canClauseRewrite(premise)) {
-    return LitArgPairIter::getEmpty();
-  }
+  auto lemmaGen = k_theoryAxiomsForLemmaGeneration && premise->isTheoryAxiom();
   return pvi(iterTraits(getIterator(ord, premise, downward))
-    .filter([&opt](LitArgPair kv) {
-      return opt.inductionEquationalLemmaGeneration()==Options::LemmaGeneration::ALL || kv.first->isForLemmaGeneration();
+    .filter([&opt,lemmaGen](LitArgPair kv) {
+      return opt.inductionEquationalLemmaGeneration()==Options::LemmaGeneration::ALL || kv.first->isForLemmaGeneration() || lemmaGen;
     })
     .filter([&ord, downward](LitArgPair kv) {
       auto lit = kv.first;
@@ -203,8 +173,8 @@ LitArgPairIter InductionRewriting::getLHSIterator(Clause* premise, const Options
       auto lhs = kv.second;
       return areEqualitySidesOriented(lhs, EqHelper::getOtherEqualitySide(lit, lhs), ord, downward);
     })
-    .filter([premise,downward](LitArgPair kv) {
-      return canUseLHSForRewrite(kv, premise, downward);
+    .filter([premise](LitArgPair kv) {
+      return canUseLHSForRewrite(kv, premise);
     }));
 }
 

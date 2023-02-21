@@ -130,7 +130,7 @@ Clause* InductionResolution::perform(Clause* queryCl, Literal* queryLit, SLQuery
   ASS(!queryLit->isEquality());
   ASS(!qr.literal->isEquality());
 
-  auto opt = _salg->getOptions();
+  auto& opt = _salg->getOptions();
   if (!isGoalClause(opt, queryCl) && !isGoalClause(opt, qr.clause)) {
     return nullptr;
   }
@@ -161,16 +161,13 @@ Clause* InductionResolution::perform(Clause* queryCl, Literal* queryLit, SLQuery
       return nullptr;
     }
   }
-
   Inference inf(GeneratingInference2(InferenceRule::INDUCTION_RESOLUTION, queryCl, qr.clause));
-  Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
   unsigned newLength = clength+dlength-2;
 
-  inf_destroyer.disable(); // ownership passed to the the clause below
-  Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
+  Clause* res = new(newLength) Clause(newLength, inf);
 
   unsigned next = 0;
   for(unsigned i=0;i<clength;i++) {

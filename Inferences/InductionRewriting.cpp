@@ -62,29 +62,21 @@ Literal* SingleOccurrenceReplacementIterator::next()
 bool isTermViolatingBound(Term* bound, TermList t, Ordering& ord, bool downward)
 {
   CALL("isTermViolatingBound");
-  ASS(t.isTerm());
   if (!bound) {
     return false;
   }
-  if (bound->isLiteral() && !t.term()->isLiteral()) {
+  if (bound->isLiteral() && (t.isVar() || !t.term()->isLiteral())) {
     return true;
   }
-  if (!bound->isLiteral() && t.term()->isLiteral()) {
+  if (!bound->isLiteral() && t.isTerm() && t.term()->isLiteral()) {
     return false;
   }
-  ASS_EQ(bound->isLiteral(),t.term()->isLiteral());
+  ASS(!bound->isLiteral() || (t.isTerm() && t.term()->isLiteral()));
   Ordering::Result comp;
   if (bound->isLiteral()) {
     comp = ord.compare(static_cast<Literal*>(bound),static_cast<Literal*>(t.term()));
   } else {
-    comp = ord.compare(TermList(bound), TermList(t));
-  }
-  if (comp == Ordering::Result::EQUAL) {
-    static unsigned cnt = 0;
-    cnt++;
-    if (cnt % 1000 == 0) {
-      cout << "equal " << cnt << endl;
-    }
+    comp = ord.compare(TermList(bound), t);
   }
   if (downward) {
     if (comp == Ordering::Result::LESS || comp == Ordering::Result::LESS_EQ) {
@@ -116,14 +108,14 @@ LitArgPairIter getIterator(Ordering& ord, Clause* premise, bool downward)
     })
     // filter out ones violating the bound
     .filter([bound,&ord,downward](LitArgPair kv) {
-      return kv.second.isTerm() && !isTermViolatingBound(bound, kv.second, ord, downward);
+      return !isTermViolatingBound(bound, kv.second, ord, downward);
     }));
 }
 
-bool isClauseRewritable(const Options& opt, Clause* premise)
+bool isClauseRewritable(const Options& opt, Clause* premise, bool downward)
 {
   CALL("InductionRewriting::isClauseRewritable");
-  if ((!opt.nonUnitInduction() || opt.splitting()) &&
+  if (!downward && (!opt.nonUnitInduction() || opt.splitting()) &&
     (!InductionHelper::isInductionClause(premise) || !InductionHelper::isInductionLiteral((*premise)[0])))
   {
     return false;
@@ -272,7 +264,7 @@ TermList getRewrittenTerm(Literal* oldLit, Literal* newLit) {
   // cout << *oldLit << " " << *newLit << endl;
   ASS_EQ(oldLit->functor(), newLit->functor());
   ASS_NEQ(newLit,oldLit);
-  if (oldLit->commutative()) {
+  if (oldLit->isEquality()) {
     auto lhsNew = *newLit->nthArgument(0);
     auto rhsNew = *newLit->nthArgument(1);
     auto lhsOld = *oldLit->nthArgument(0);
@@ -351,7 +343,13 @@ ClauseIterator InductionRewriting::perform(
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
   TermList tgtTermS = subst->applyTo(tgtTerm, eqIsResult);
   TermList rwTermS = subst->applyTo(rwTerm, !eqIsResult);
-  TermList rwArgS = subst->applyTo(rwArg, !eqIsResult);
+  ASS(rwArg.isTerm());
+  TermList rwArgS;
+  if (rwArg.term()->isLiteral()) {
+    rwArgS = TermList(subst->applyTo(static_cast<Literal*>(rwArg.term()), !eqIsResult));
+  } else {
+    rwArgS = subst->applyTo(rwArg, !eqIsResult);
+  }
   Literal* rwLitS = subst->applyTo(rwLit, !eqIsResult);
   if (!rwArgS.containsSubterm(rwTermS)) {
     return ClauseIterator::getEmpty();
@@ -366,9 +364,15 @@ ClauseIterator InductionRewriting::perform(
   }
 
   auto eqBound = _downward ? eqClause->getRewritingUpperBound() : eqClause->getRewritingLowerBound();
+  auto compTerm = _downward ? rwTermS : rwArgS;
   if (eqBound) {
-    auto eqBoundS = subst->applyTo(TermList(eqBound), eqIsResult).term();
-    if (isTermViolatingBound(eqBoundS, rwTermS, _salg->getOrdering(), _downward)) {
+    Term* eqBoundS;
+    if (eqBound->isLiteral()) {
+      eqBoundS = subst->applyTo(static_cast<Literal*>(eqBound), eqIsResult);
+    } else {
+      eqBoundS = subst->applyTo(TermList(eqBound), eqIsResult).term();
+    }
+    if (isTermViolatingBound(eqBoundS, compTerm, _salg->getOrdering(), _downward)) {
       return ClauseIterator::getEmpty();
     }
   }
@@ -376,7 +380,11 @@ ClauseIterator InductionRewriting::perform(
   auto bound = _downward ? rwClause->getRewritingUpperBound() : rwClause->getRewritingLowerBound();
   Term* boundS = nullptr;
   if (bound) {
-    boundS = subst->applyTo(TermList(bound), !eqIsResult).term();
+    if (bound->isLiteral()) {
+      boundS = subst->applyTo(static_cast<Literal*>(bound), !eqIsResult);
+    } else {
+      boundS = subst->applyTo(TermList(bound), !eqIsResult).term();
+    }
   }
 
   return pvi(iterTraits(vi(new SingleOccurrenceReplacementIterator(rwLitS, rwTermS.term(), tgtTermS)))

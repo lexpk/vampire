@@ -83,6 +83,7 @@
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
+#include "Inferences/InductionEqualityResolution.hpp"
 #include "Inferences/InductionResolution.hpp"
 #include "Inferences/InductionRewriting.hpp"
 #include "Inferences/InductionSGIWrapper.hpp"

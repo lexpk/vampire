@@ -720,6 +720,10 @@ unsigned Clause::numPositiveLiterals()
 void Clause::setRewritingBound(Term* t, bool lower)
 {
   CALL("Clause::setRewritingBound");
+  if (t->isLiteral() && static_cast<Literal*>(t)->isNegative()) {
+    t = Literal::complementaryLiteral(static_cast<Literal*>(t));
+  }
+  ASS(!t->isLiteral() || static_cast<Literal*>(t)->isPositive());
   if (lower) {
     _rewritingLowerBound = t;
   } else {

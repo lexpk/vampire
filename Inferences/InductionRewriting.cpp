@@ -74,7 +74,14 @@ bool isTermViolatingBound(Term* bound, TermList t, Ordering& ord, bool downward)
   ASS(!bound->isLiteral() || (t.isTerm() && t.term()->isLiteral()));
   Ordering::Result comp;
   if (bound->isLiteral()) {
-    comp = ord.compare(static_cast<Literal*>(bound),static_cast<Literal*>(t.term()));
+    auto blit = static_cast<Literal*>(bound);
+    auto tlit = static_cast<Literal*>(t.term());
+
+    ASS(blit->isPositive());
+    if (tlit->isNegative()) {
+      tlit = Literal::complementaryLiteral(tlit);
+    }
+    comp = ord.compare(blit,tlit);
   } else {
     comp = ord.compare(TermList(bound), t);
   }

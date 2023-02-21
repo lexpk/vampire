@@ -41,15 +41,14 @@ bool isLiteralViolatingBound(Term* bound, Literal* lit, Ordering& ord)
   if (!bound || !bound->isLiteral()) {
     return false;
   }
-
-  auto comp = ord.compare(static_cast<Literal*>(bound), lit);
-  if (comp == Ordering::Result::EQUAL) {
-    static unsigned cnt = 0;
-    cnt++;
-    if (cnt % 1000 == 0) {
-      cout << "litequal " << cnt << endl;
-    }
+  if (lit->isNegative()) {
+    lit = Literal::complementaryLiteral(lit);
   }
+  auto blit = static_cast<Literal*>(bound);
+  ASS(blit->isPositive());
+
+  auto comp = ord.compare(blit, lit);
+  // cout << *bound << " " << *lit << " " << Ordering::resultToString(comp) << endl;
   return comp == Ordering::Result::LESS || comp == Ordering::Result::LESS_EQ;
 }
 
@@ -191,7 +190,7 @@ Clause* InductionResolution::perform(Clause* queryCl, Literal* queryLit, SLQuery
   //      << "AND " << *qr.clause << endl
   //      << "RESULT " << *res << endl;
   if (opt.symmetryBreakingParamodulation()) {
-    res->setRewritingBound(queryLitS->isPositive() ? queryLitS : resultLitS, false);
+    res->setRewritingBound(queryLitS, false);
   }
   env.statistics->inductionResolution++;
 

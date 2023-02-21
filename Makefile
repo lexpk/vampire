@@ -300,6 +300,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InductiveReasoning/InductionPostponement.o\
          Inferences/Induction.o\
          Inferences/InductionHelper.o\
+         Inferences/InductionEqualityResolution.o\
          Inferences/InductionResolution.o\
          Inferences/InductionRewriting.o\
          Inferences/InductionSGIWrapper.o\

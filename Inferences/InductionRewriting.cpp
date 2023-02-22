@@ -28,6 +28,8 @@
 #include "InductionResolution.hpp"
 #include "InductionRewriting.hpp"
 
+#define INDUCTION_MODE 0
+
 namespace Inferences {
 
 using namespace Lib;
@@ -62,8 +64,11 @@ Literal* SingleOccurrenceReplacementIterator::next()
 bool isTermViolatingBound(Term* bound, TermList t, Ordering& ord, bool downward)
 {
   CALL("isTermViolatingBound");
+  if (!bound) {
+    return false;
+  }
   // predicates are always greater than non-predicates
-  if (!bound || bound->isLiteral() && (t.isVar() || !t.term()->isLiteral())) {
+  if (bound->isLiteral() && (t.isVar() || !t.term()->isLiteral())) {
     return false;
   }
   if (!bound->isLiteral() && t.isTerm() && t.term()->isLiteral()) {
@@ -167,20 +172,26 @@ void InductionRewriting::markTheoryAxiomsForLemmaGeneration()
 LitArgPairIter InductionRewriting::getTermIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward)
 {
   CALL("InductionRewriting::getTermIterator");
+#if INDUCTION_MODE
   if (!isClauseRewritable(opt, premise, downward)) {
     return LitArgPairIter::getEmpty();
   }
+#endif
   return pvi(iterTraits(getIterator(ord, premise, downward)));
 }
 
 LitArgPairIter InductionRewriting::getLHSIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward)
 {
   CALL("InductionRewriting::getLHSIterator");
+#if INDUCTION_MODE
   auto lemmaGen = k_theoryAxiomsForLemmaGeneration && premise->isTheoryAxiom();
+#endif
   return pvi(iterTraits(getIterator(ord, premise, downward))
+#if INDUCTION_MODE
     .filter([&opt,lemmaGen](LitArgPair kv) {
       return opt.inductionEquationalLemmaGeneration()==Options::LemmaGeneration::ALL || kv.first->isForLemmaGeneration() || lemmaGen;
     })
+#endif
     .filter([&ord, downward](LitArgPair kv) {
       auto lit = kv.first;
       if (!lit->isEquality() || lit->isNegative()) {
@@ -189,9 +200,13 @@ LitArgPairIter InductionRewriting::getLHSIterator(Clause* premise, const Options
       auto lhs = kv.second;
       return areEqualitySidesOriented(lhs, EqHelper::getOtherEqualitySide(lit, lhs), ord, downward);
     })
+#if INDUCTION_MODE
     .filter([premise](LitArgPair kv) {
       return canUseLHSForRewrite(kv, premise);
     }));
+#else
+    );
+#endif
 }
 
 // inference
@@ -279,23 +294,9 @@ TermList getRewrittenTerm(Literal* oldLit, Literal* newLit) {
     }
     ASS(lhsNew == rhsOld || rhsNew == rhsOld);
     return lhsOld;
-  } else {
-    return TermList(oldLit);
-    // for (unsigned i = 0; i < oldLit->arity(); i++) {
-    //   auto oldArg = *oldLit->nthArgument(i);
-    //   auto newArg = *newLit->nthArgument(i);
-    //   if (oldArg != newArg) {
-    //     return oldArg;
-    //   }
-    // }
-    // ASSERTION_VIOLATION;
   }
+  return TermList(oldLit);
 }
-
-// bool greaterSideRewritten(Literal* lit, Literal* orig, Ordering& ord) {
-//   auto rwSide = getSideRewritten(lit, orig);
-//   return ord.compare(rwSide, EqHelper::getOtherEqualitySide(orig, rwSide)) == Ordering::GREATER;
-// }
 
 void InductionRewriting::output()
 {
@@ -320,6 +321,7 @@ ClauseIterator InductionRewriting::perform(
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
+  ASS(!_downward || !(rwClause->getRewritingLowerBound() && eqClause->getRewritingLowerBound()))
 
   // cout << "perform " << (_downward ? "downward" : "upward") << " rewriting with " << *rwClause << " and " << *eqClause << endl
   //   << "rwLit " << *rwLit << " eqLit " << *eqLit << endl
@@ -364,13 +366,15 @@ ClauseIterator InductionRewriting::perform(
     return ClauseIterator::getEmpty();
   }
 
+#if INDUCTION_MODE
   if (_salg->getOptions().lemmaGenerationHeuristics() && filterByHeuristics(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, subst)) {
     return ClauseIterator::getEmpty();
   }
+#endif
 
   auto eqBound = _downward ? eqClause->getRewritingUpperBound() : eqClause->getRewritingLowerBound();
   auto compTerm = _downward ? rwTermS : rwArgS;
-  Term* eqBoundS;
+  Term* eqBoundS = nullptr;
   if (eqBound) {
     if (eqBound->isLiteral()) {
       eqBoundS = subst->applyTo(static_cast<Literal*>(eqBound), eqIsResult);
@@ -471,14 +475,18 @@ ClauseIterator InductionRewriting::perform(
       if (_salg->getOptions().symmetryBreakingParamodulation()) {
         newCl->setRewritingBound(newRwArg.term(), !_downward);
       }
+      bool boundEqual = false;
       if (newRwArg.term() == boundS) {
         ASS_EQ(newRwArg.term()->isLiteral(),boundS->isLiteral());
-        env.statistics->mainPremiseBoundEqual++;
+        boundEqual = true;
       }
       ASS(compTerm.isTerm());
-      if (eqBoundS && compTerm.term() == eqBoundS) {
+      if (!boundEqual && eqBoundS && compTerm.term() == eqBoundS) {
         ASS_EQ(eqBoundS->isLiteral(),compTerm.term()->isLiteral());
-        env.statistics->sidePremiseBoundEqual++;
+        boundEqual = true;
+      }
+      if (boundEqual) {
+        env.statistics->symParBoundEqual++;
       }
 
       return newCl;

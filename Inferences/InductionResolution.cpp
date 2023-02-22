@@ -27,6 +27,8 @@
 
 #include "InductionResolution.hpp"
 
+#define INDUCTION_MODE 0
+
 namespace Inferences {
 
 using namespace Lib;
@@ -71,9 +73,16 @@ VirtualIterator<Literal*> InductionResolution::getIterator(Ordering& ord, Clause
   CALL("InductionResolution::getIterator");
   Term* bound = premise->getRewritingUpperBound();
   return pvi(iterTraits(premise->iterLits())
+    .filter([](Literal* lit) {
+      return !lit->isEquality();
+    })
     // filter out ones violating the bound
     .filter([bound,&ord,premise](Literal* lit) {
-      return canUseLiteralForResolution(lit, premise) && !isLiteralViolatingBound(bound, lit, ord);
+      return !isLiteralViolatingBound(bound, lit, ord)
+#if INDUCTION_MODE
+        && canUseLiteralForResolution(lit, premise)
+#endif
+      ;
     }));
 }
 
@@ -128,18 +137,17 @@ Clause* InductionResolution::perform(Clause* queryCl, Literal* queryLit, SLQuery
   ASS(queryCl->store()==Clause::ACTIVE);
   ASS(!queryLit->isEquality());
   ASS(!qr.literal->isEquality());
+  ASS(!queryCl->getRewritingLowerBound());
+  ASS(!qr.clause->getRewritingLowerBound());
+  // cout << "RES " << *queryLit << " " << *qr.literal << endl
+  //      << "    " << *qr.clause << endl;
 
   auto& opt = _salg->getOptions();
+#if INDUCTION_MODE
   if (!isGoalClause(opt, queryCl) && !isGoalClause(opt, qr.clause)) {
     return nullptr;
   }
-
-  // check if inference is done by binary resolution
-  if (queryCl->getLiteralPosition(queryLit) < queryCl->numSelected() &&
-      qr.clause->getLiteralPosition(qr.literal) < qr.clause->numSelected())
-  {
-    return nullptr;
-  }
+#endif
 
   auto queryLitS = qr.substitution->applyToQuery(queryLit);
   auto queryBound = queryCl->getRewritingUpperBound();
@@ -192,6 +200,23 @@ Clause* InductionResolution::perform(Clause* queryCl, Literal* queryLit, SLQuery
   if (opt.symmetryBreakingParamodulation()) {
     res->setRewritingBound(queryLitS, false);
   }
+  bool boundEqual = false;
+  if (queryBound && queryBound->isLiteral()) {
+    auto queryBoundS = qr.substitution->applyToQuery(static_cast<Literal*>(queryBound));
+    if (queryBoundS == queryLitS) {
+      boundEqual = true;
+    }
+  }
+  if (!boundEqual && resultBound && resultBound->isLiteral()) {
+    auto resultBoundS = qr.substitution->applyToResult(static_cast<Literal*>(resultBound));
+    if (resultBoundS == resultLitS) {
+      boundEqual = true;
+    }
+  }
+  if (boundEqual) {
+    env.statistics->symParBoundEqualResolution++;
+  }
+
   env.statistics->inductionResolution++;
 
   return res;

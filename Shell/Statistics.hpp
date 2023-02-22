@@ -129,6 +129,8 @@ public:
   unsigned backwardDownwardParamodulation;
   unsigned forwardUpwardParamodulation;
   unsigned backwardUpwardParamodulation;
+  unsigned mainPremiseBoundEqual;
+  unsigned sidePremiseBoundEqual;
   unsigned inductionResolution;
   unsigned inductionRedundant;
   unsigned maxInductionDepth;

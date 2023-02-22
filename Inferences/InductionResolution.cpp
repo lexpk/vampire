@@ -35,11 +35,11 @@ using namespace Kernel;
 bool isLiteralViolatingBound(Term* bound, Literal* lit, Ordering& ord)
 {
   CALL("isLiteralViolatingBound");
-  if (lit->isEquality()) {
-    return true;
-  }
-  if (!bound || !bound->isLiteral()) {
+  if (!bound || lit->isEquality()) {
     return false;
+  }
+  if (!bound->isLiteral()) {
+    return true;
   }
   if (lit->isNegative()) {
     lit = Literal::complementaryLiteral(lit);

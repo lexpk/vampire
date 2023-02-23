@@ -361,6 +361,7 @@ public:
   void copyRewritingBounds(Clause* c);
   Term* getRewritingLowerBound();
   Term* getRewritingUpperBound();
+  bool isFromUpwardParamodulation() const;
 
 protected:
   /** number of literals */

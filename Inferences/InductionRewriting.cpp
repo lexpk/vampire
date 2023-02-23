@@ -28,7 +28,7 @@
 #include "InductionResolution.hpp"
 #include "InductionRewriting.hpp"
 
-#define INDUCTION_MODE 0
+#define INDUCTION_MODE 1
 
 namespace Inferences {
 
@@ -236,6 +236,9 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
   CALL("InductionRewriting::generateClauses");
   auto& ord = _salg->getOrdering();
   auto& opt = _salg->getOptions();
+  if (_downward && premise->getRewritingLowerBound()) {
+    return ClauseIterator::getEmpty();
+  }
 
   // forward result
   auto fwRes = iterTraits(getTermIterator(premise, opt, ord, _downward))

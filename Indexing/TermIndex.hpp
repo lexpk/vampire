@@ -121,14 +121,14 @@ public:
 
   void onAddedToContainer(Clause* c) override
   {
-    if (!c->getRewritingLowerBound()) {
+    if (!c->isFromUpwardParamodulation()) {
       handleClause(c, true);
     }
   }
 
   void onRemovedFromContainer(Clause* c) override
   {
-    if (!c->getRewritingLowerBound()) {
+    if (!c->isFromUpwardParamodulation()) {
       handleClause(c, false);
     }
   }

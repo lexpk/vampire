@@ -1024,11 +1024,11 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   CALL("SaturationAlgorithm::forwardSimplify");
   TIME_TRACE("forward simplification");
 
-  if (cl->getRewritingLowerBound()/*  || cl->getRewritingUpperBound() */) {
+  if (cl->isFromUpwardParamodulation()) {
     Clause* replacement = 0;
     ClauseIterator premises = ClauseIterator::getEmpty();
 
-    if (_fwSubsAndRes->perform(cl,replacement,premises)) {
+    if (_fwSubsAndRes && _fwSubsAndRes->perform(cl,replacement,premises)) {
       if (replacement) {
         addNewClause(replacement);
       }
@@ -1313,23 +1313,6 @@ start:
 
   while (! _unprocessed->isEmpty()) {
     Clause* c = _unprocessed->pop();
-    // if (!c->getRewritingLowerBound() && !c->getRewritingUpperBound()) {
-    //   auto it = c->inference().iterator();
-    //   if (c->inference().hasNext(it)) {
-    //     auto u = c->inference().next(it);
-    //     if (u->isClause()) {
-    //       auto p = u->asClause();
-    //       if (p->getRewritingLowerBound() || p->getRewritingUpperBound()) {
-    //         static vset<InferenceRule> rules{ InferenceRule::INDUCTION_HYPERRESOLUTION };
-    //         if (rules.insert(c->inference().rule()).second) {
-    //           cout << "inference not covered: " << ruleName(c->inference().rule()) << endl;
-    //         }
-    //         // cout << *c << " " << *p << endl;
-    //         // ASS_REP(false, c->toString() + " " + p->toString());
-    //       }
-    //     }
-    //   }
-    // }
     ASS(!isRefutation(c));
 
     if (forwardSimplify(c)) {
@@ -1576,6 +1559,38 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }
 
+  /*{
+    CompositeGIE* gie=new CompositeGIE();
+
+    // gie->addFront(new BinaryResolution());
+    // gie->addFront(new EqualityFactoring());
+    // gie->addFront(new EqualityResolution());
+    // gie->addFront(new Superposition());
+
+    gie->addFront(new InductionResolution());
+    // gie->addFront(new InductionEqualityResolution());
+    gie->addFront(new InductionRewriting(true));
+    gie->addFront(new InductionRewriting(false));
+
+    CompositeSGI* sgi = new CompositeSGI();
+    sgi->push(gie);
+    res->setGeneratingInferenceEngine(sgi);
+
+    // res->addForwardSimplifierToFront(new ForwardDemodulationImpl<false>());
+    // res->_fwSubsAndRes = new ForwardSubsumptionAndResolution(true);
+    res->_fwSubsAndRes = new ForwardSubsumptionAndResolution(false);
+    res->addForwardSimplifierToFront(res->_fwSubsAndRes);
+    // res->addBackwardSimplifierToFront(new BackwardDemodulation());
+
+    CompositeISE* ise=new CompositeISE();
+    ise->addFront(new TrivialInequalitiesRemovalISE());
+    ise->addFront(new TautologyDeletionISE());
+    ise->addFront(new DuplicateLiteralRemovalISE());
+    res->setImmediateSimplificationEngine(ise);
+
+    return res;
+  }*/
+
   if(opt.splitting()){
     res->_splitter = new Splitter();
   }
@@ -1590,10 +1605,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   InductionRewriting* inductionUpwardRewriting = nullptr;
   if(opt.induction()!=Options::Induction::NONE){
     if (env.options->inductionEquationalLemmaGeneration()!=Options::LemmaGeneration::NONE) {
-      // inductionResolution = new InductionResolution();
+      inductionResolution = new InductionResolution();
       inductionDownwardRewriting = new InductionRewriting(true /*downward*/);
       inductionUpwardRewriting = new InductionRewriting(false /*downward*/);
-      // gie->addFront(inductionResolution);
+      gie->addFront(inductionResolution);
       gie->addFront(inductionDownwardRewriting);
       gie->addFront(inductionUpwardRewriting);
     }

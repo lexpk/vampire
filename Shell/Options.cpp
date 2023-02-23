@@ -1471,7 +1471,7 @@ void Options::init()
     _symmetryBreakingParamodulation = BoolOptionValue("symmetry_breaking_paramodulation","sbp",false);
     _symmetryBreakingParamodulation.description = "";
     _symmetryBreakingParamodulation.tag(OptionTag::INFERENCES);
-    _symmetryBreakingParamodulation.reliesOn(_inductionEquationalLemmaGeneration.is(notEqual(LemmaGeneration::NONE)));
+    // _symmetryBreakingParamodulation.reliesOn(_inductionEquationalLemmaGeneration.is(notEqual(LemmaGeneration::NONE)));
     _lookup.insert(&_symmetryBreakingParamodulation);
 
     _inductionRedundancyCheck = BoolOptionValue("induction_redundancy_check","irc",false);

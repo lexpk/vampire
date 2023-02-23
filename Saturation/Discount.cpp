@@ -37,7 +37,7 @@ bool Discount::handleClauseBeforeActivation(Clause* cl)
   CALL("Discount::handleClauseBeforeActivation");
   ASS(cl->store()==Clause::SELECTED);
 
-  if (!forwardSimplify(cl)) {
+  if (!cl->isFromUpwardParamodulation() && !forwardSimplify(cl)) {
     cl->setStore(Clause::NONE);
     return false;
   }

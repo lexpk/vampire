@@ -27,7 +27,7 @@
 
 #include "InductionResolution.hpp"
 
-#define INDUCTION_MODE 0
+#define INDUCTION_MODE 1
 
 namespace Inferences {
 
@@ -118,6 +118,9 @@ void InductionResolution::detach()
 ClauseIterator InductionResolution::generateClauses(Clause* premise)
 {
   CALL("InductionResolution::generateClauses");
+  if (premise->getRewritingLowerBound()) {
+    return ClauseIterator::getEmpty();
+  }
 
   return pvi(iterTraits(getIterator(_salg->getOrdering(), premise))
     .flatMap([this](Literal* lit) {

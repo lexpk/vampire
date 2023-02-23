@@ -133,6 +133,62 @@ ClauseIterator InductionResolution::generateClauses(Clause* premise)
     .timeTraced("induction resolution"));
 }
 
+inline bool termAlgebraFunctor(unsigned functor) {
+  auto sym = env.signature->getFunction(functor);
+  return sym->termAlgebraCons() || sym->termAlgebraDest();
+}
+
+bool hasTermToInductOn(Literal* lit)
+{
+  static const bool intInd = InductionHelper::isIntInductionOn();
+  static const bool structInd = InductionHelper::isStructInductionOn();
+  NonVariableNonTypeIterator stit(lit, false);
+  while (stit.hasNext()) {
+    auto st = stit.next();
+    if (InductionHelper::isInductionTermFunctor(st.term()->functor()) &&
+      ((structInd && !termAlgebraFunctor(st.term()->functor()) && InductionHelper::isStructInductionTerm(st.term())) ||
+       (intInd && InductionHelper::isIntInductionTermListInLiteral(st, lit))))
+    {
+      return true;
+    }
+  }
+}
+
+bool filterByHeuristics(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, const Options& opt)
+{
+  // if (eqClause->isPureTheoryDescendant() || rwClause->isPureTheoryDescendant()) {
+  //   return true;
+  // }
+
+  if (opt.nonUnitInduction() && !opt.splitting()) {
+    return false;
+  }
+  bool found = false;
+  for (unsigned i = 0; i < queryCl->length(); i++) {
+    auto lit = (*queryCl)[i];
+    if (lit != queryLit && hasTermToInductOn(lit)) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    return true;
+  }
+  found = false;
+  for (unsigned i = 0; i < resultCl->length(); i++) {
+    auto lit = (*resultCl)[i];
+    if (lit != resultLit && hasTermToInductOn(lit)) {
+      found = true;
+      break;
+    }
+  }
+  // if (!_downward && eqClause->length() == 1 && rhs.isTerm() && !hasTermToInductOn(rhs.term(), eqLit)) {
+  //   return true;
+  // }
+
+  return !found;
+}
+
 Clause* InductionResolution::perform(Clause* queryCl, Literal* queryLit, SLQueryResult qr)
 {
   CALL("InductionResolution::generateClause");
@@ -148,6 +204,9 @@ Clause* InductionResolution::perform(Clause* queryCl, Literal* queryLit, SLQuery
   auto& opt = _salg->getOptions();
 #if INDUCTION_MODE
   if (!isGoalClause(opt, queryCl) && !isGoalClause(opt, qr.clause)) {
+    return nullptr;
+  }
+  if (filterByHeuristics(queryCl, queryLit, qr.clause, qr.literal, opt)) {
     return nullptr;
   }
 #endif

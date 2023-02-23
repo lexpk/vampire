@@ -370,7 +370,7 @@ ClauseIterator InductionRewriting::perform(
   }
 
 #if INDUCTION_MODE
-  if (_salg->getOptions().lemmaGenerationHeuristics() && filterByHeuristics(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, subst)) {
+  if (_salg->getOptions().lemmaGenerationHeuristics() && filterByHeuristics(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, subst, _salg->getOptions())) {
     return ClauseIterator::getEmpty();
   }
 #endif
@@ -508,11 +508,35 @@ vset<unsigned> getSkolems(Literal* lit) {
   return res;
 }
 
+inline bool termAlgebraFunctor(unsigned functor) {
+  auto sym = env.signature->getFunction(functor);
+  return sym->termAlgebraCons() || sym->termAlgebraDest();
+}
+
+inline bool hasTermToInductOn(Term* t, Literal* l) {
+  static const bool intInd = InductionHelper::isIntInductionOn();
+  static const bool structInd = InductionHelper::isStructInductionOn();
+  NonVariableNonTypeIterator stit(t);
+  while (stit.hasNext()) {
+    auto st = stit.next();
+    if (InductionHelper::isInductionTermFunctor(st.term()->functor()) &&
+      ((structInd && !termAlgebraFunctor(st.term()->functor()) && InductionHelper::isStructInductionTerm(st.term())) ||
+       (intInd && InductionHelper::isIntInductionTermListInLiteral(st, l))))
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool InductionRewriting::filterByHeuristics(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    ResultSubstitutionSP subst)
+    ResultSubstitutionSP subst, const Options& opt)
 {
+  // if (eqClause->isPureTheoryDescendant() || rwClause->isPureTheoryDescendant()) {
+  //   return true;
+  // }
   if (eqLHS.isVar()) {
     return true;
   }
@@ -524,6 +548,14 @@ bool InductionRewriting::filterByHeuristics(
     if (is != eqSkolems) {
       return true;
     }
+  }
+  // lhs contains only things we cannot induct on
+  auto rhs = EqHelper::getOtherEqualitySide(eqLit, TermList(eqLHS));
+  // if ((!opt.nonUnitInduction() || opt.splitting()) && (rhs.isVar() || !hasTermToInductOn(rhs.term(), eqLit))) {
+  //   return true;
+  // }
+  if (!_downward && eqClause->length() == 1 && rhs.isTerm() && !hasTermToInductOn(rhs.term(), eqLit)) {
+    return true;
   }
 
   return false;

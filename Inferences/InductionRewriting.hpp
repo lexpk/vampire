@@ -99,7 +99,7 @@ private:
   bool filterByHeuristics(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    ResultSubstitutionSP subst);
+    ResultSubstitutionSP subst, const Options& opt);
 
   TermIndex* _lhsIndex;
   TermIndex* _termIndex;

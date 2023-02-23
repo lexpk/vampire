@@ -1486,7 +1486,7 @@ void Options::init()
     _lemmaGenerationHeuristics.reliesOn(_inductionEquationalLemmaGeneration.is(notEqual(LemmaGeneration::NONE)));
     _lookup.insert(&_lemmaGenerationHeuristics);
 
-    _inductionPostponement = BoolOptionValue("induction_postponement","indpp",true);
+    _inductionPostponement = BoolOptionValue("induction_postponement","indpp",false);
     _inductionPostponement.description = "Postpone structural inductions that cannot be refuted by the current"
                                          "set of clauses until suitable clauses pop up in the search space.";
     _inductionPostponement.tag(OptionTag::INFERENCES);

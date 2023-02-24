@@ -133,6 +133,7 @@ public:
   virtual Clause* popSelected() = 0;
 
   virtual unsigned sizeEstimate() const = 0;
+  virtual void setInductionRestrictions(void* r) = 0;
 
   /*
    * LRS specific methods for computation of Limits

@@ -329,6 +329,7 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
 	 SAT/FallbackSolverWrapper.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
+         Saturation/InductionAWPassiveClauseContainer.o\
          Saturation/PredicateSplitPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
@@ -346,6 +347,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 VS_OBJ = Shell/AnswerExtractor.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
+				 Shell/InductionCNF.o\
          Shell/NewCNF.o\
          Shell/NameReuse.o\
          Shell/DistinctProcessor.o\

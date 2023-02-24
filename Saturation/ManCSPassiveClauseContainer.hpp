@@ -42,6 +42,7 @@ public:
   void add(Clause* cl) override;
   void remove(Clause* cl) override;
   Clause* popSelected() override;
+  void setInductionRestrictions(void* r) override {}
   
 private:
   std::vector<Clause*> clauses;

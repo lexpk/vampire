@@ -527,6 +527,7 @@ source_group(decision_procedures_source_files FILES ${VAMPIRE_DECISION_PROCEDURE
 
 set(VAMPIRE_SATURATION_SOURCES
     Saturation/AWPassiveClauseContainer.cpp
+    Saturation/InductionAWPassiveClauseContainer.cpp
     Saturation/ManCSPassiveClauseContainer.cpp
     Saturation/ClauseContainer.cpp
     Saturation/ConsequenceFinder.cpp
@@ -540,6 +541,7 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/Splitter.cpp
     Saturation/SymElOutput.cpp
     Saturation/PredicateSplitPassiveClauseContainer.cpp
+    Saturation/InductionAWPassiveClauseContainer.hpp
     Saturation/AWPassiveClauseContainer.hpp
     Saturation/ClauseContainer.hpp
     Saturation/ConsequenceFinder.hpp
@@ -560,6 +562,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/AnswerExtractor.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
+    Shell/InductionCNF.cpp
     Shell/NewCNF.cpp
     Shell/NameReuse.cpp
     Shell/DistinctProcessor.cpp
@@ -615,6 +618,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/AnswerExtractor.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
+    Shell/InductionCNF.hpp
     Shell/NewCNF.hpp
     Shell/NameReuse.hpp
     Shell/DistinctProcessor.hpp

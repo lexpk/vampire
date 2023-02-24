@@ -20,6 +20,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/InductionFormulaIndex.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -190,6 +191,7 @@ private:
   InductionFormulaIndex _formulaIndex;
   TermIndex* _demodulationLhsIndex = nullptr;
   InductionPostponement _postponement;
+  CodeTreeTIS _restrictions;
 };
 
 class InductionClauseIterator
@@ -198,10 +200,10 @@ public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
     TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex,
-    TermIndex* demodulationLhsIndex, const Ordering& ord, Splitter* splitter, InductionPostponement& postponement)
+    TermIndex* demodulationLhsIndex, const Ordering& ord, Splitter* splitter, InductionPostponement& postponement, CodeTreeTIS& restrictions)
       : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex),
       _formulaIndex(formulaIndex), _demodulationLhsIndex(demodulationLhsIndex), _ord(ord),
-      _splitter(splitter), _postponement(postponement)
+      _splitter(splitter), _postponement(postponement), _restrictions(restrictions)
   {
     processClause(premise);
   }
@@ -222,7 +224,7 @@ private:
   void processLiteral(Clause* premise, Literal* lit);
   void processIntegerComparison(Clause* premise, Literal* lit);
 
-  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
+  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, const vmap<unsigned,LiteralStack>& hyps);
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
 
   void performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub);
@@ -246,6 +248,7 @@ private:
   const Ordering& _ord;
   Splitter* _splitter;
   InductionPostponement& _postponement;
+  CodeTreeTIS& _restrictions;
 };
 
 };

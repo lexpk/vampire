@@ -82,6 +82,7 @@ public:
   { return _ageQueue.isEmpty() && _weightQueue.isEmpty(); }
 
   unsigned sizeEstimate() const override { return _size; }
+  void setInductionRestrictions(void* r) override {}
 
   static Comparison compareWeight(Clause* cl1, Clause* cl2, const Shell::Options& opt);
 

@@ -149,9 +149,31 @@ bool areEqualitySidesOriented(TermList lhs, TermList rhs, Ordering& ord, bool do
   return true;
 }
 
-bool canUseLHSForRewrite(LitArgPair kv, Clause* premise)
+inline bool termAlgebraFunctor(unsigned functor) {
+  auto sym = env.signature->getFunction(functor);
+  return sym->termAlgebraCons() || sym->termAlgebraDest();
+}
+
+inline bool hasTermToInductOn(Term* t, Literal* l) {
+  static const bool intInd = InductionHelper::isIntInductionOn();
+  static const bool structInd = InductionHelper::isStructInductionOn();
+  NonVariableNonTypeIterator stit(t);
+  while (stit.hasNext()) {
+    auto st = stit.next();
+    if (InductionHelper::isInductionTermFunctor(st.term()->functor()) &&
+      ((structInd && !termAlgebraFunctor(st.term()->functor()) && InductionHelper::isStructInductionTerm(st.term())) ||
+       (intInd && InductionHelper::isIntInductionTermListInLiteral(st, l))))
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool canUseLHSForRewrite(LitArgPair kv, Clause* premise, const Options& opt, bool downward)
 {
   CALL("InductionRewriting::canUseLHSForRewrite");
+  auto lit = kv.first;
   auto lhs = kv.second;
   // cannot yet handle new variables that pop up
   if (iterTraits(premise->getVariableIterator())
@@ -160,6 +182,17 @@ bool canUseLHSForRewrite(LitArgPair kv, Clause* premise)
       }))
   {
     return false;
+  }
+
+  if (opt.lemmaGenerationHeuristics()) {
+    // lhs contains only things we cannot induct on
+    auto rhs = EqHelper::getOtherEqualitySide(lit, TermList(lhs));
+    // if ((!opt.nonUnitInduction() || opt.splitting()) && (rhs.isVar() || !hasTermToInductOn(rhs.term(), eqLit))) {
+    //   return true;
+    // }
+    if (!downward && premise->length() == 1 && rhs.isTerm() && !hasTermToInductOn(rhs.term(), lit)) {
+      return true;
+    }
   }
   return true;
 }
@@ -201,8 +234,8 @@ LitArgPairIter InductionRewriting::getLHSIterator(Clause* premise, const Options
       return areEqualitySidesOriented(lhs, EqHelper::getOtherEqualitySide(lit, lhs), ord, downward);
     })
 #if INDUCTION_MODE
-    .filter([premise](LitArgPair kv) {
-      return canUseLHSForRewrite(kv, premise);
+    .filter([premise,&opt,downward](LitArgPair kv) {
+      return canUseLHSForRewrite(kv, premise, opt, downward);
     }));
 #else
     );
@@ -324,7 +357,7 @@ ClauseIterator InductionRewriting::perform(
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
-  ASS(!_downward || !(rwClause->getRewritingLowerBound() && eqClause->getRewritingLowerBound()))
+  ASS(!_downward || !(rwClause->getRewritingLowerBound() && eqClause->getRewritingLowerBound()));
 
   // cout << "perform " << (_downward ? "downward" : "upward") << " rewriting with " << *rwClause << " and " << *eqClause << endl
   //   << "rwLit " << *rwLit << " eqLit " << *eqLit << endl
@@ -350,30 +383,31 @@ ClauseIterator InductionRewriting::perform(
     return ClauseIterator::getEmpty();
   }
 
-  TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
-  TermList tgtTermS = subst->applyTo(tgtTerm, eqIsResult);
+#if INDUCTION_MODE
+  if (_salg->getOptions().lemmaGenerationHeuristics() && filterByHeuristics(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, subst, _salg->getOptions())) {
+    return ClauseIterator::getEmpty();
+  }
+#endif
+
   TermList rwTermS = subst->applyTo(rwTerm, !eqIsResult);
-  ASS(rwArg.isTerm());
   TermList rwArgS;
   if (rwArg.term()->isLiteral()) {
     rwArgS = TermList(subst->applyTo(static_cast<Literal*>(rwArg.term()), !eqIsResult));
   } else {
     rwArgS = subst->applyTo(rwArg, !eqIsResult);
   }
-  Literal* rwLitS = subst->applyTo(rwLit, !eqIsResult);
   if (!rwArgS.containsSubterm(rwTermS)) {
     return ClauseIterator::getEmpty();
   }
 
+  TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
+  TermList tgtTermS = subst->applyTo(tgtTerm, eqIsResult);
+  ASS(rwArg.isTerm());
+  Literal* rwLitS = subst->applyTo(rwLit, !eqIsResult);
+
   if (!areEqualitySidesOriented(rwTermS, tgtTermS, _salg->getOrdering(), _downward)) {
     return ClauseIterator::getEmpty();
   }
-
-#if INDUCTION_MODE
-  if (_salg->getOptions().lemmaGenerationHeuristics() && filterByHeuristics(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, subst, _salg->getOptions())) {
-    return ClauseIterator::getEmpty();
-  }
-#endif
 
   auto eqBound = _downward ? eqClause->getRewritingUpperBound() : eqClause->getRewritingLowerBound();
   auto compTerm = _downward ? rwTermS : rwArgS;
@@ -508,27 +542,6 @@ vset<unsigned> getSkolems(Literal* lit) {
   return res;
 }
 
-inline bool termAlgebraFunctor(unsigned functor) {
-  auto sym = env.signature->getFunction(functor);
-  return sym->termAlgebraCons() || sym->termAlgebraDest();
-}
-
-inline bool hasTermToInductOn(Term* t, Literal* l) {
-  static const bool intInd = InductionHelper::isIntInductionOn();
-  static const bool structInd = InductionHelper::isStructInductionOn();
-  NonVariableNonTypeIterator stit(t);
-  while (stit.hasNext()) {
-    auto st = stit.next();
-    if (InductionHelper::isInductionTermFunctor(st.term()->functor()) &&
-      ((structInd && !termAlgebraFunctor(st.term()->functor()) && InductionHelper::isStructInductionTerm(st.term())) ||
-       (intInd && InductionHelper::isIntInductionTermListInLiteral(st, l))))
-    {
-      return true;
-    }
-  }
-  return false;
-}
-
 bool InductionRewriting::filterByHeuristics(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
@@ -549,15 +562,6 @@ bool InductionRewriting::filterByHeuristics(
       return true;
     }
   }
-  // lhs contains only things we cannot induct on
-  auto rhs = EqHelper::getOtherEqualitySide(eqLit, TermList(eqLHS));
-  // if ((!opt.nonUnitInduction() || opt.splitting()) && (rhs.isVar() || !hasTermToInductOn(rhs.term(), eqLit))) {
-  //   return true;
-  // }
-  if (!_downward && eqClause->length() == 1 && rhs.isTerm() && !hasTermToInductOn(rhs.term(), eqLit)) {
-    return true;
-  }
-
   return false;
 }
 

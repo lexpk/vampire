@@ -76,6 +76,7 @@ Statistics::Statistics()
     backwardUpwardParamodulation(0),
     symParBoundEqual(0),
     symParBoundEqualResolution(0),
+    inductionEqResolution(0),
     inductionResolution(0),
     inductionRedundant(0),
     maxInductionDepth(0),
@@ -443,6 +444,7 @@ void Statistics::print(ostream& out)
   COND_OUT("BackwardUpwardParamodulation", backwardUpwardParamodulation);
   COND_OUT("SymParBoundEqual", symParBoundEqual);
   COND_OUT("SymParBoundEqualResolution", symParBoundEqualResolution);
+  COND_OUT("InductionEqResolution", inductionEqResolution);
   COND_OUT("InductionResolution", inductionResolution);
   COND_OUT("InductionRedundant", inductionRedundant);
   SEPARATOR;

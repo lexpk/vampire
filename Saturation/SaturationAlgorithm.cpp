@@ -1626,6 +1626,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(res->_instantiation);
   }
 
+  // gie->addFront(new InductionEqualityResolution());
   if (prb.hasEquality()) {
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());

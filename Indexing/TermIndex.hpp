@@ -103,6 +103,19 @@ public:
   // people seemed to like the class, although it add's no interface on top of TermIndex
   DemodulationSubtermIndex(TermIndexingStructure* is)
   : TermIndex(is) {};
+  void onAddedToContainer(Clause* c) override
+  {
+    if (!c->isFromUpwardParamodulation()) {
+      handleClause(c, true);
+    }
+  }
+
+  void onRemovedFromContainer(Clause* c) override
+  {
+    if (!c->isFromUpwardParamodulation()) {
+      handleClause(c, false);
+    }
+  }
 protected:
   // it's the implementation of this below in DemodulationSubtermIndexImpl, which makes this work
   void handleClause(Clause* c, bool adding) = 0;
@@ -118,20 +131,6 @@ public:
 
   DemodulationSubtermIndexImpl(TermIndexingStructure* is)
   : DemodulationSubtermIndex(is) {};
-
-  void onAddedToContainer(Clause* c) override
-  {
-    if (!c->isFromUpwardParamodulation()) {
-      handleClause(c, true);
-    }
-  }
-
-  void onRemovedFromContainer(Clause* c) override
-  {
-    if (!c->isFromUpwardParamodulation()) {
-      handleClause(c, false);
-    }
-  }
 protected:
   void handleClause(Clause* c, bool adding);
 };

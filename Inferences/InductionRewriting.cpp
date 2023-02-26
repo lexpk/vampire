@@ -60,25 +60,48 @@ Literal* SingleOccurrenceReplacementIterator::next()
   return sor.transform(_lit);
 }
 
-
-bool isTermViolatingBound(Term* bound, TermList t, Ordering& ord, bool downward)
+bool comparisonViolates(Ordering::Result comp, bool downward)
 {
-  CALL("isTermViolatingBound");
+  if (downward) {
+    return comp == Ordering::Result::LESS || comp == Ordering::Result::LESS_EQ;
+  }
+  return comp == Ordering::Result::GREATER || comp == Ordering::Result::GREATER_EQ;
+}
+
+bool isTermListViolatingBound(Term* bound, TermList t, Ordering& ord, bool downward)
+{
+  CALL("isTermListViolatingBound");
   if (!bound) {
     return false;
   }
   // predicates are always greater than non-predicates
-  if (bound->isLiteral() && (t.isVar() || !t.term()->isLiteral())) {
+  if (t.isVar()) {
+    if (bound->isLiteral()) {
+      return false;
+    }
+    return comparisonViolates(ord.compare(TermList(bound), t), downward);
+  }
+  return InductionRewriting::isTermViolatingBound(bound, t.term(), ord, downward);
+}
+
+bool InductionRewriting::isTermViolatingBound(Term* bound, Term* t, Ordering& ord, bool downward)
+{
+  CALL("InductionRewriting::isTermViolatingBound");
+  if (!bound) {
     return false;
   }
-  if (!bound->isLiteral() && t.isTerm() && t.term()->isLiteral()) {
+  // predicates are always greater than non-predicates
+  if (bound->isLiteral() && !t->isLiteral()) {
+    return false;
+  }
+  if (!bound->isLiteral() && t->isLiteral()) {
     return true;
   }
-  ASS(!bound->isLiteral() || (t.isTerm() && t.term()->isLiteral()));
+  ASS_EQ(bound->isLiteral(), t->isLiteral());
   Ordering::Result comp;
   if (bound->isLiteral()) {
     auto blit = static_cast<Literal*>(bound);
-    auto tlit = static_cast<Literal*>(t.term());
+    auto tlit = static_cast<Literal*>(t);
 
     ASS(blit->isPositive());
     if (tlit->isNegative()) {
@@ -86,18 +109,9 @@ bool isTermViolatingBound(Term* bound, TermList t, Ordering& ord, bool downward)
     }
     comp = ord.compare(blit,tlit);
   } else {
-    comp = ord.compare(TermList(bound), t);
+    comp = ord.compare(TermList(bound), TermList(t));
   }
-  if (downward) {
-    if (comp == Ordering::Result::LESS || comp == Ordering::Result::LESS_EQ) {
-      return true;
-    }
-  } else {
-    if (comp == Ordering::Result::GREATER || comp == Ordering::Result::GREATER_EQ) {
-      return true;
-    }
-  }
-  return false;
+  return comparisonViolates(comp, downward);
 }
 
 LitArgPairIter getIterator(Ordering& ord, Clause* premise, bool downward)
@@ -118,7 +132,7 @@ LitArgPairIter getIterator(Ordering& ord, Clause* premise, bool downward)
     })
     // filter out ones violating the bound
     .filter([bound,&ord,downward](LitArgPair kv) {
-      return !isTermViolatingBound(bound, kv.second, ord, downward);
+      return !isTermListViolatingBound(bound, kv.second, ord, downward);
     }));
 }
 
@@ -217,7 +231,7 @@ LitArgPairIter InductionRewriting::getLHSIterator(Clause* premise, const Options
 {
   CALL("InductionRewriting::getLHSIterator");
 #if INDUCTION_MODE
-  auto lemmaGen = k_theoryAxiomsForLemmaGeneration && premise->isTheoryAxiom();
+  auto lemmaGen = k_theoryAxiomsForLemmaGeneration && premise->isPureTheoryDescendant();
 #endif
   return pvi(iterTraits(getIterator(ord, premise, downward))
 #if INDUCTION_MODE
@@ -418,7 +432,7 @@ ClauseIterator InductionRewriting::perform(
     } else {
       eqBoundS = subst->applyTo(TermList(eqBound), eqIsResult).term();
     }
-    if (isTermViolatingBound(eqBoundS, compTerm, _salg->getOrdering(), _downward)) {
+    if (isTermListViolatingBound(eqBoundS, compTerm, _salg->getOrdering(), _downward)) {
       return ClauseIterator::getEmpty();
     }
   }
@@ -442,7 +456,7 @@ ClauseIterator InductionRewriting::perform(
       if (newRwArg != rwArgS) {
         return nullptr;
       }
-      if (isTermViolatingBound(boundS, newRwArg, _salg->getOrdering(), _downward)) {
+      if (isTermListViolatingBound(boundS, newRwArg, _salg->getOrdering(), _downward)) {
         return nullptr;
       }
 
@@ -501,12 +515,12 @@ ClauseIterator InductionRewriting::perform(
           env.statistics->backwardUpwardParamodulation++;
         }
       }
-      auto ptr = _eqs.findPtr(eqClause);
-      if (!ptr) {
-        _eqs.insert(eqClause, 1);
-      } else {
-        (*ptr)++;
-      }
+      // auto ptr = _eqs.findPtr(eqClause);
+      // if (!ptr) {
+      //   _eqs.insert(eqClause, 1);
+      // } else {
+      //   (*ptr)++;
+      // }
       // cout << "result " << *newCl << endl << endl;
       ASS(newRwArg.isTerm());
       if (_salg->getOptions().symmetryBreakingParamodulation()) {

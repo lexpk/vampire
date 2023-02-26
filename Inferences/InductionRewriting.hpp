@@ -89,6 +89,7 @@ public:
   static LitArgPairIter getTermIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward);
   static LitArgPairIter getLHSIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward);
   static void markTheoryAxiomsForLemmaGeneration();
+  static bool isTermViolatingBound(Term* bound, Term* t, Ordering& ord, bool downward);
 
 private:
   ClauseIterator perform(

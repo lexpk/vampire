@@ -40,7 +40,7 @@ ClauseIterator InductionEqualityResolution::generateClauses(Clause* premise)
       }
 
       auto len = premise->length();
-      Clause* res = new(len-1) Clause(len-1, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, premise));
+      Clause* res = new(len-1) Clause(len-1, GeneratingInference1(InferenceRule::INDUCTION_EQUALITY_RESOLUTION, premise));
 
       unsigned next = 0;
       for (unsigned i=0; i < len; i++) {
@@ -51,7 +51,7 @@ ClauseIterator InductionEqualityResolution::generateClauses(Clause* premise)
       }
       ASS_EQ(next,len-1);
 
-      env.statistics->equalityResolution++;
+      env.statistics->inductionEqResolution++;
       auto lowerBound = premise->getRewritingLowerBound();
       if (lowerBound) {
         Term* lowerBoundS;

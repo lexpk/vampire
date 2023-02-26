@@ -758,6 +758,15 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
         }
       }
     }
+    for (const auto& cl : hyp_clauses) {
+      for (unsigned i = 0; i < cl->length(); i++) {
+        auto lit = (*cl)[i];
+        if (lit->isEquality() && lit->isPositive() && lit->containsSubterm(t)) {
+          // cout << *lit << " marked" << endl;
+          lit->markForLemmaGeneration();
+        }
+      }
+    }
   }
 
   switch (rule) {
@@ -1000,12 +1009,6 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
     ASS_EQ(next-cnt,kv.first->length()-kv.second.size());
   }
   ASS_EQ(next,newLength);
-  for (unsigned i = 0; i < res->length(); i++) {
-    auto lit = (*res)[i];
-    if (lit->isEquality() && lit->isPositive()) {
-      lit->markForLemmaGeneration();
-    }
-  }
 
   return res;
 }

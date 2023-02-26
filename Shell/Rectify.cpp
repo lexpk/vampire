@@ -91,6 +91,10 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
     //TODO do we know the sorts of vars?
     unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),FormulaTransformation(InferenceRule::CLOSURE,unit));
   }
+  if (unit != unit0 && unit0->isForLemmaGeneration()) {
+    // cout << "marked in rectify " << *unit << endl;
+    unit->markForLemmaGeneration();
+  }
   return unit;
 } // Rectify::rectify (Unit& unit)
 

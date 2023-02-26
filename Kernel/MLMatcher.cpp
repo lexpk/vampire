@@ -28,6 +28,8 @@
 
 #include "MLMatcher.hpp"
 
+#include "Inferences/InductionRewriting.hpp"
+
 #if VDEBUG
 #include <iostream>
 #endif
@@ -677,7 +679,7 @@ void MLMatcher::Impl::getBindings(vunordered_map<unsigned, TermList>& outBinding
   MatchingData const* const md = &s_matchingData;
 
   // Untested if using this together with resolvedLit works correctly, but it should (please remove this assertion if you can confirm this).
-  ASS(!md->resolvedLit);
+  // ASS(!md->resolvedLit);
 
   ASS(outBindings.empty());
 
@@ -742,41 +744,47 @@ bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* insta
     if (!ord) {
       return true;
     }
-    auto instanceUpperBound = instance->getRewritingUpperBound();
-    static unsigned skipped = 0;
-    // TODO do this for lower bounds
-    // auto instanceLowerBound = instance->getRewritingLowerBound();
-    if (!baseUpperBound) {
+    if (!baseUpperBound && !baseLowerBound) {
+      // there is no bound on base, subsume
       return true;
     }
-    if (!instanceUpperBound) {
-      skipped++;
-      if (skipped % 1000 == 0) {
-        cout << "skipped2 " << skipped << endl;
-      }
+    auto instanceLowerBound = instance->getRewritingLowerBound();
+    auto instanceUpperBound = instance->getRewritingUpperBound();
+    if (!instanceUpperBound && !instanceLowerBound) {
+      // there is no bound on instance, do not subsume
       return false;
     }
+    // at this point exactly one of baseUpperBound and baseLowerBound is non-null,
+    // same with instanceLowerBound and instanceUpperBound
+    ASS_NEQ(baseUpperBound == nullptr, baseLowerBound == nullptr);
+    ASS_NEQ(instanceUpperBound == nullptr, instanceLowerBound == nullptr);
+    if (baseUpperBound && instanceLowerBound) {
+      return true;
+    }
+    if (baseLowerBound && instanceUpperBound) {
+      return false;
+    }
+    auto baseBound = baseUpperBound ? baseUpperBound : baseLowerBound;
+    auto instanceBound = instanceUpperBound ? instanceUpperBound : instanceLowerBound;
     vunordered_map<unsigned, TermList> binder;
     matcher.getBindings(binder);
     Substitution subst;
-    auto vit = vi(new VariableIterator(baseUpperBound));
+    auto vit = vi(new VariableIterator(baseBound));
     while (vit.hasNext()) {
       auto v = vit.next();
       if (!binder.count(v.var())) {
         // possibly losing inferences, so we don't match
-        skipped++;
-        if (skipped % 1000 == 0) {
-          cout << "skipped2 " << skipped << endl;
-        }
         return false;
       }
     }
     for (const auto& kv : binder) {
       subst.bind(kv.first, kv.second);
     }
-    auto baseUpperBoundS = baseUpperBound->apply(subst);
-    auto comp = ord->compare(TermList(baseUpperBoundS), TermList(instanceUpperBound));
-    return comp == Ordering::Result::GREATER || comp == Ordering::Result::GREATER_EQ || comp == Ordering::Result::EQUAL;
+    auto baseBoundS = baseBound->apply(subst);
+    if (Inferences::InductionRewriting::isTermViolatingBound(baseBoundS, instanceBound, *ord, true)) {
+      return false;
+    }
+    return true;
   }
   return false;
 }

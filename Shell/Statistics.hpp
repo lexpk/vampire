@@ -131,6 +131,7 @@ public:
   unsigned backwardUpwardParamodulation;
   unsigned symParBoundEqual;
   unsigned symParBoundEqualResolution;
+  unsigned inductionEqResolution;
   unsigned inductionResolution;
   unsigned inductionRedundant;
   unsigned maxInductionDepth;

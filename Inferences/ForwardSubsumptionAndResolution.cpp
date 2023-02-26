@@ -37,6 +37,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "ForwardSubsumptionAndResolution.hpp"
+#include "InductionRewriting.hpp"
 
 namespace Inferences {
 using namespace Lib;
@@ -235,7 +236,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
   auto& ord = _salg->getOrdering();
-  static unsigned skipped = 0;
 
   for (unsigned li = 0; li < clen; li++) {
     SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, true);
@@ -244,36 +244,39 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       Clause *premise = qr.clause;
       if (ColorHelper::compatible(cl->color(), premise->color())) {
         auto baseUpperBound = premise->getRewritingUpperBound();
-        if (baseUpperBound) {
+        auto baseLowerBound = premise->getRewritingLowerBound();
+        if (baseUpperBound || baseLowerBound) {
+          // there is a bound on base, check whether we can subsume
+          static unsigned cnt = 0;
           auto instanceUpperBound = cl->getRewritingUpperBound();
-          if (!instanceUpperBound) {
+          auto instanceLowerBound = cl->getRewritingLowerBound();
+          if (!instanceUpperBound && !instanceLowerBound) {
+            // there is no bound on instance, do not subsume
             continue;
           }
-          auto vit = vi(new VariableIterator(baseUpperBound));
-          bool nope = false;
-          while (vit.hasNext()) {
-            auto v = vit.next();
-            if (!qr.substitution->doesBind(v.var())) {
-              // possibly losing inferences, so we don't match
-              nope = true;
-              break;
+          // at this point exactly one of baseUpperBound and baseLowerBound is non-null,
+          // same with instanceLowerBound and instanceUpperBound
+          ASS_NEQ(baseUpperBound == nullptr, baseLowerBound == nullptr);
+          ASS_NEQ(instanceUpperBound == nullptr, instanceLowerBound == nullptr);
+          if (!baseUpperBound || !instanceLowerBound) {
+            if (baseLowerBound && instanceUpperBound) {
+              return false;
             }
-          }
-          if (nope) {
-            skipped++;
-            if (skipped % 1000 == 0) {
-              cout << "skipped " << skipped << endl;
+            auto baseBound = baseUpperBound ? baseUpperBound : baseLowerBound;
+            auto instanceBound = instanceUpperBound ? instanceUpperBound : instanceLowerBound;
+            if (iterTraits(vi(new VariableIterator(baseBound)))
+              .any([&qr](TermList v) {
+                return !qr.substitution->doesBind(v.var());
+              }))
+            {
+              // there is a variable that does not have a bind,
+              // so safer to skip the simplification
+              continue;
             }
-            continue;
-          }
-          auto baseUpperBoundS = qr.substitution->applyToBoundResult(TermList(baseUpperBound));
-          auto comp = ord.compare(baseUpperBoundS, TermList(instanceUpperBound));
-          if (comp == Ordering::Result::LESS || comp == Ordering::Result::LESS_EQ) {
-            skipped++;
-            if (skipped % 1000 == 0) {
-              cout << "skipped " << skipped << endl;
+            auto baseBoundS = qr.substitution->applyToBoundResult(TermList(baseBound)).term();
+            if (InductionRewriting::isTermViolatingBound(baseBoundS, instanceBound, ord, true)) {
+              continue;
             }
-            continue;
           }
         }
         premises = pvi(getSingletonIterator(premise));

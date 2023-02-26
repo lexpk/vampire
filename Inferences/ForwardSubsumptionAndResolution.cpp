@@ -247,7 +247,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         auto baseLowerBound = premise->getRewritingLowerBound();
         if (baseUpperBound || baseLowerBound) {
           // there is a bound on base, check whether we can subsume
-          static unsigned cnt = 0;
           auto instanceUpperBound = cl->getRewritingUpperBound();
           auto instanceLowerBound = cl->getRewritingLowerBound();
           if (!instanceUpperBound && !instanceLowerBound) {

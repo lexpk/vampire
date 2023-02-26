@@ -79,14 +79,14 @@ public:
   CLASS_NAME(InductionRewriting);
   USE_ALLOCATOR(InductionRewriting);
 
-  InductionRewriting(bool downward) : _downward(downward) {}
+  InductionRewriting(bool downward, const Options& opt);
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   ClauseIterator generateClauses(Clause* premise) override;
   void output();
 
-  static LitArgPairIter getTermIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward);
+  static LitArgPairIter getTermIterator(Clause* premise, Ordering& ord, bool downward, bool singleLitInd);
   static LitArgPairIter getLHSIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward);
   static void markTheoryAxiomsForLemmaGeneration();
   static bool isTermViolatingBound(Term* bound, Term* t, Ordering& ord, bool downward);
@@ -105,7 +105,9 @@ private:
   TermIndex* _lhsIndex;
   TermIndex* _termIndex;
   DHMap<Clause*, unsigned> _eqs;
+  const Options& _opt;
   bool _downward;
+  bool _singleLiteralInduction;
 };
 
 }

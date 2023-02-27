@@ -294,7 +294,6 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
 {
   CALL("InductionRewriting::generateClauses");
   auto& ord = _salg->getOrdering();
-  auto& opt = _salg->getOptions();
   if (_downward && premise->getRewritingLowerBound()) {
     return ClauseIterator::getEmpty();
   }
@@ -319,7 +318,7 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
     .timeTraced(_downward ? "forward downward paramodulation" : "forward upward paramodulation");
 
   // backward result
-  auto bwRes = iterTraits(getLHSIterator(premise, opt, ord, _downward))
+  auto bwRes = iterTraits(getLHSIterator(premise, _opt, ord, _downward))
     .flatMap([this](LitArgPair kv) {
       return pvi( pushPairIntoRightIterator(make_pair(kv.first, TermList(kv.second)), _termIndex->getUnifications(TermList(kv.second), true)) );
     })
@@ -410,7 +409,7 @@ ClauseIterator InductionRewriting::perform(
   }
 
 #if INDUCTION_MODE
-  if (_salg->getOptions().lemmaGenerationHeuristics() && filterByHeuristics(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, subst, _salg->getOptions())) {
+  if (_opt.lemmaGenerationHeuristics() && filterByHeuristics(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, subst, _opt)) {
     return ClauseIterator::getEmpty();
   }
 #endif
@@ -542,7 +541,7 @@ ClauseIterator InductionRewriting::perform(
       // }
       // cout << "result " << *newCl << endl << endl;
       ASS(newRwArg.isTerm());
-      if (_salg->getOptions().symmetryBreakingParamodulation()) {
+      if (_opt.symmetryBreakingParamodulation()) {
         newCl->setRewritingBound(newRwArg.term(), !_downward);
       }
       bool boundEqual = false;

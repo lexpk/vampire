@@ -36,15 +36,16 @@ SimplifyingGeneratingInference::ClauseGenerationResult InductionSGIWrapper::gene
   //   _dwRewriting->output();
   //   _uwRewriting->output();
   // }
-  if (!premise->getRewritingLowerBound() && !premise->getRewritingUpperBound()) {
+  // if (!premise->getRewritingLowerBound() && !premise->getRewritingUpperBound()) {
+  if (!premise->isFromUpwardParamodulation()) {
     return _generator->generateSimplify(premise);
   }
-  ASS(!premise->getRewritingLowerBound() || !premise->getRewritingUpperBound());
+  // ASS(!premise->getRewritingLowerBound() || !premise->getRewritingUpperBound());
   auto it = ClauseIterator::getEmpty();
-  if (premise->getRewritingUpperBound()) {
-    it = pvi(getConcatenatedIterator(it, _dwRewriting->generateClauses(premise)));
-    // it = pvi(getConcatenatedIterator(it, _resolution->generateClauses(premise)));
-  }
+  // if (premise->getRewritingUpperBound()) {
+  //   it = pvi(getConcatenatedIterator(it, _dwRewriting->generateClauses(premise)));
+  //   // it = pvi(getConcatenatedIterator(it, _resolution->generateClauses(premise)));
+  // }
   return ClauseGenerationResult {
     .clauses = pvi(iterTraits(it).concat(
       _induction->generateClauses(premise),

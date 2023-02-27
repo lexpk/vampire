@@ -130,15 +130,15 @@ protected:
 
   virtual void onAddedToContainer(Clause* c)
   {
-    if (!c->getRewritingLowerBound() && !c->getRewritingUpperBound()) {
+    // if (!c->getRewritingLowerBound() && !c->getRewritingUpperBound()) {
       handleClause(c, true);
-    }
+    // }
   }
   virtual void onRemovedFromContainer(Clause* c)
   {
-    if (!c->getRewritingLowerBound() && !c->getRewritingUpperBound()) {
+    // if (!c->getRewritingLowerBound() && !c->getRewritingUpperBound()) {
       handleClause(c, false);
-    }
+    // }
   }
   virtual void handleClause(Clause* c, bool adding) {}
 

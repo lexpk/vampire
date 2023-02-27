@@ -85,14 +85,14 @@ protected:
 
   void onAddedToContainer(Clause* c) override
   {
-    if (!c->getRewritingLowerBound()) {
+    if (!c->isFromUpwardParamodulation()) {
       handleClause(c, true);
     }
   }
 
   void onRemovedFromContainer(Clause* c) override
   {
-    if (!c->getRewritingLowerBound()) {
+    if (!c->isFromUpwardParamodulation()) {
       handleClause(c, false);
     }
   }
@@ -111,11 +111,11 @@ public:
   : LiteralIndex(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
-  void onAddedToContainer(Clause* c) override
-  { handleClause(c, true); }
+  // void onAddedToContainer(Clause* c) override
+  // { handleClause(c, true); }
 
-  void onRemovedFromContainer(Clause* c) override
-  { handleClause(c, false); }
+  // void onRemovedFromContainer(Clause* c) override
+  // { handleClause(c, false); }
 };
 
 class FwSubsSimplifyingLiteralIndex

@@ -1608,96 +1608,105 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   InductionRewriting* inductionDownwardRewriting = nullptr;
   InductionRewriting* inductionUpwardRewriting = nullptr;
   if(opt.induction()!=Options::Induction::NONE){
-    if (env.options->inductionEquationalLemmaGeneration()!=Options::LemmaGeneration::NONE) {
-      // inductionResolution = new InductionResolution();
-      inductionDownwardRewriting = new InductionRewriting(true /*downward*/);
-      inductionUpwardRewriting = new InductionRewriting(false /*downward*/);
-      // gie->addFront(inductionResolution);
-      gie->addFront(inductionDownwardRewriting);
-      gie->addFront(inductionUpwardRewriting);
-    }
     induction = new Induction();
     gie->addFront(induction);
   }
 
-  if(opt.instantiation()!=Options::Instantiation::OFF){
-    res->_instantiation = new Instantiation();
-    //res->_instantiation->init();
-    gie->addFront(res->_instantiation);
-  }
-
-  // gie->addFront(new InductionEqualityResolution());
-  if (prb.hasEquality()) {
+  if (opt.inductionEquationalLemmaGeneration()!=Options::LemmaGeneration::NONE) {
+    // inductionResolution = new InductionResolution();
+    inductionDownwardRewriting = new InductionRewriting(true /*downward*/, opt);
+    inductionUpwardRewriting = new InductionRewriting(false /*downward*/, opt);
+    // gie->addFront(inductionResolution);
+    gie->addFront(inductionDownwardRewriting);
+    gie->addFront(inductionUpwardRewriting);
+    gie->addFront(new InductionEqualityResolution());
+    // TODO try to remove superposition
+    gie->addFront(new Superposition());
+    gie->addFront(new BinaryResolution());
+  } else {
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
-    if(env.options->superposition()){
-      gie->addFront(new Superposition());
-    }
-  } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
-    gie->addFront(new EqualityResolution()); 
-  }
-
-  if(opt.combinatorySup()){
-    gie->addFront(new ArgCong());
-    gie->addFront(new NegativeExt());//TODO add option
-    if(opt.narrow() != Options::Narrow::OFF){
-      gie->addFront(new Narrow());
-    }
-    if(!opt.pragmatic()){
-      gie->addFront(new SubVarSup());
-    }
-  }
-
-  if(prb.hasFOOL() &&
-    prb.higherOrder() && env.options->booleanEqTrick()){
-  //  gie->addFront(new ProxyElimination::NOTRemovalGIE());
-    gie->addFront(new BoolEqToDiseq());
-  }
-
-  if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
-     prb.higherOrder() && !opt.lambdaFreeHol()){
-    gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
-    gie->addFront(new ElimLeibniz());
-  }
-
-  if(env.options->choiceReasoning()){
-    gie->addFront(new Choice());
-  }
-
-  gie->addFront(new Factoring());
-  if (opt.binaryResolution()) {
+    gie->addFront(new Superposition());
     gie->addFront(new BinaryResolution());
   }
-  if (opt.unitResultingResolution() != Options::URResolution::OFF) {
-    gie->addFront(new URResolution());
-  }
-  if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
-    gie->addFront(new ExtensionalityResolution());
-  }
-  if (opt.FOOLParamodulation()) {
-    gie->addFront(new FOOLParamodulation());
-  }
-  if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
-    gie->addFront(new Cases());
-  }
 
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      gie->addFront(new LazyClausificationGIE());
-    }
-  }
+  // if(opt.instantiation()!=Options::Instantiation::OFF){
+  //   res->_instantiation = new Instantiation();
+  //   //res->_instantiation->init();
+  //   gie->addFront(res->_instantiation);
+  // }
 
-  if (opt.injectivityReasoning()) {
-    gie->addFront(new Injectivity());
-  }
+  // if (prb.hasEquality()) {
+  //   gie->addFront(new EqualityFactoring());
+  //   gie->addFront(new EqualityResolution());
+  //   if(env.options->superposition()){
+  //     gie->addFront(new Superposition());
+  //   }
+  // } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
+  //   gie->addFront(new EqualityResolution()); 
+  // }
+
+  // if(opt.combinatorySup()){
+  //   gie->addFront(new ArgCong());
+  //   gie->addFront(new NegativeExt());//TODO add option
+  //   if(opt.narrow() != Options::Narrow::OFF){
+  //     gie->addFront(new Narrow());
+  //   }
+  //   if(!opt.pragmatic()){
+  //     gie->addFront(new SubVarSup());
+  //   }
+  // }
+
+  // if(prb.hasFOOL() &&
+  //   prb.higherOrder() && env.options->booleanEqTrick()){
+  // //  gie->addFront(new ProxyElimination::NOTRemovalGIE());
+  //   gie->addFront(new BoolEqToDiseq());
+  // }
+
+  // if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
+  //    prb.higherOrder() && !opt.lambdaFreeHol()){
+  //   gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
+  //   gie->addFront(new ElimLeibniz());
+  // }
+
+  // if(env.options->choiceReasoning()){
+  //   gie->addFront(new Choice());
+  // }
+
+  // gie->addFront(new Factoring());
+  // if (opt.binaryResolution()) {
+  //   gie->addFront(new BinaryResolution());
+  // }
+  // if (opt.unitResultingResolution() != Options::URResolution::OFF) {
+  //   gie->addFront(new URResolution());
+  // }
+  // if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
+  //   gie->addFront(new ExtensionalityResolution());
+  // }
+  // if (opt.FOOLParamodulation()) {
+  //   gie->addFront(new FOOLParamodulation());
+  // }
+  // if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
+  //   gie->addFront(new Cases());
+  // }
+
+  // if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
+  //     prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
+  //   if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+  //      env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
+  //     gie->addFront(new LazyClausificationGIE());
+  //   }
+  // }
+
+  // if (opt.injectivityReasoning()) {
+  //   gie->addFront(new Injectivity());
+  // }
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
-    if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
-      gie->addFront(new AcyclicityGIE());
-    } else if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULELIGHT) {
-      gie->addFront(new AcyclicityGIE1());
-    }
+    // if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
+    //   gie->addFront(new AcyclicityGIE());
+    // } else if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULELIGHT) {
+    //   gie->addFront(new AcyclicityGIE1());
+    // }
     if (opt.termAlgebraInferences()) {
       gie->addFront(new InjectivityGIE());
     }
@@ -1706,31 +1715,31 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   CompositeSGI* sgi = new CompositeSGI();
   sgi->push(gie);
 
-  auto& ordering = res->getOrdering();
+  // auto& ordering = res->getOrdering();
 
-  if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL_CAUTIOUS) {
-    sgi->push(new PolynomialEvaluation(ordering));
-  }
+  // if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL_CAUTIOUS) {
+  //   sgi->push(new PolynomialEvaluation(ordering));
+  // }
 
-  if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    sgi->push(new Cancellation(ordering)); 
-  }
+  // if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
+  //   sgi->push(new Cancellation(ordering)); 
+  // }
 
-  if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination())); 
-  }
+  // if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
+  //   sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination())); 
+  // }
 
-  if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    for (auto gen : allArithmeticSubtermGeneralizations())  {
-      sgi->push(gen);
-    }
-  }
+  // if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
+  //   for (auto gen : allArithmeticSubtermGeneralizations())  {
+  //     sgi->push(gen);
+  //   }
+  // }
 
 
 #if VZ3
-  if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
-    sgi->push(new TheoryInstAndSimp());
-  }
+  // if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
+  //   sgi->push(new TheoryInstAndSimp());
+  // }
 #endif
 
   if (env.options->inductionEquationalLemmaGeneration()!=Options::LemmaGeneration::NONE) {
@@ -1744,28 +1753,28 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   //create simplification engine
 
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      res->addSimplifierToFront(new LazyClausification());
-    }
-    //res->addSimplifierToFront(new RenamingOnTheFly());
-  }  
+  // if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
+  //     prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
+  //   if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+  //      env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
+  //     res->addSimplifierToFront(new LazyClausification());
+  //   }
+  //   //res->addSimplifierToFront(new RenamingOnTheFly());
+  // }  
 
   // create forward simplification engine
-  if (prb.hasEquality() && opt.innerRewriting()) {
-    res->addForwardSimplifierToFront(new InnerRewriting());
-  }
-  if (opt.hyperSuperposition()) {
-    res->addForwardSimplifierToFront(new HyperSuperposition());
-  }
-  if (opt.globalSubsumption()) {
-    res->addForwardSimplifierToFront(new GlobalSubsumption(opt));
-  }
-  if (opt.forwardLiteralRewriting()) {
-    res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
-  }
+  // if (prb.hasEquality() && opt.innerRewriting()) {
+  //   res->addForwardSimplifierToFront(new InnerRewriting());
+  // }
+  // if (opt.hyperSuperposition()) {
+  //   res->addForwardSimplifierToFront(new HyperSuperposition());
+  // }
+  // if (opt.globalSubsumption()) {
+  //   res->addForwardSimplifierToFront(new GlobalSubsumption(opt));
+  // }
+  // if (opt.forwardLiteralRewriting()) {
+  //   res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
+  // }
   if (prb.hasEquality()) {
     // NOTE:
     // fsd should be performed after forward subsumption,
@@ -1834,15 +1843,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
   }
 
-  if (opt.mode()==Options::Mode::CONSEQUENCE_ELIMINATION) {
-    res->_consFinder=new ConsequenceFinder();
-  }
-  if (opt.showSymbolElimination()) {
-    res->_symEl=new SymElOutput();
-  }
-  if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
-    res->_answerLiteralManager = AnswerLiteralManager::getInstance();
-  }
+  // if (opt.mode()==Options::Mode::CONSEQUENCE_ELIMINATION) {
+  //   res->_consFinder=new ConsequenceFinder();
+  // }
+  // if (opt.showSymbolElimination()) {
+  //   res->_symEl=new SymElOutput();
+  // }
+  // if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
+  //   res->_answerLiteralManager = AnswerLiteralManager::getInstance();
+  // }
   return res;
 } // SaturationAlgorithm::createFromOptions
 

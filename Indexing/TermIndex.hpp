@@ -169,14 +169,14 @@ public:
 
   void onAddedToContainer(Clause* c) override
   {
-    if (!_downward || !c->getRewritingLowerBound()) {
+    if (!_downward || !c->isFromUpwardParamodulation()) {
       handleClause(c, true);
     }
   }
 
   void onRemovedFromContainer(Clause* c) override
   {
-    if (!_downward || !c->getRewritingLowerBound()) {
+    if (!_downward || !c->isFromUpwardParamodulation()) {
       handleClause(c, false);
     }
   }
@@ -204,14 +204,14 @@ public:
 
   void onAddedToContainer(Clause* c) override
   {
-    if (!_downward || !c->getRewritingLowerBound()) {
+    if (!_downward || !c->isFromUpwardParamodulation()) {
       handleClause(c, true);
     }
   }
 
   void onRemovedFromContainer(Clause* c) override
   {
-    if (!_downward || !c->getRewritingLowerBound()) {
+    if (!_downward || !c->isFromUpwardParamodulation()) {
       handleClause(c, false);
     }
   }
@@ -254,11 +254,11 @@ public:
   StructInductionTermIndex(TermIndexingStructure* is)
   : TermIndex(is) {}
 
-  void onAddedToContainer(Clause* c) override
-  { handleClause(c, true); }
+  // void onAddedToContainer(Clause* c) override
+  // { handleClause(c, true); }
 
-  void onRemovedFromContainer(Clause* c) override
-  { handleClause(c, false); }
+  // void onRemovedFromContainer(Clause* c) override
+  // { handleClause(c, false); }
 
 protected:
   void handleClause(Clause* c, bool adding);

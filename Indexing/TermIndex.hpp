@@ -199,8 +199,7 @@ public:
   CLASS_NAME(RewritingSubtermIndex);
   USE_ALLOCATOR(RewritingSubtermIndex);
 
-  RewritingSubtermIndex(TermIndexingStructure* is, const Options& opt, Ordering& ord, bool downward)
-  : TermIndex(is), _opt(opt), _ord(ord), _downward(downward) {}
+  RewritingSubtermIndex(TermIndexingStructure* is, const Options& opt, Ordering& ord, bool downward);
 
   void onAddedToContainer(Clause* c) override
   {
@@ -222,6 +221,7 @@ private:
   const Options& _opt;
   Ordering& _ord;
   bool _downward;
+  bool _goalOriented;
 };
 
 /**

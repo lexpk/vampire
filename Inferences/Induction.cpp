@@ -81,6 +81,9 @@ TermList SkolemSquashingTermReplacement::transformSubterm(TermList trm)
     if (t==_o){
       return _r;
     }
+    if (t->isSort()) {
+      return trm;
+    }
     unsigned f = t->functor();
     if (env.signature->getFunction(f)->skolem()) {
       unsigned v;
@@ -724,9 +727,9 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
 {
   CALL("InductionClauseIterator::produceClauses");
   TIME_TRACE("induction clause production");
-  InductionCNF cnf;
-  // NewCNF cnf(0);
-  // cnf.setForInduction();
+  // InductionCNF cnf;
+  NewCNF cnf(0);
+  cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
@@ -735,8 +738,8 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
     env.out() << "[Induction] formula " << fu->toString() << endl;
     env.endOutput();
   }
-  // cnf.clausify(NNF::ennf(fu), hyp_clauses);
-  cnf.clausify(fu, hyp_clauses);
+  cnf.clausify(NNF::ennf(fu), hyp_clauses);
+  /* cnf.clausify(fu, hyp_clauses);
   auto subst = cnf.subst();
   // cout << "hyps" << endl;
   for (const auto& kv : hyps) {
@@ -767,7 +770,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
         }
       }
     }
-  }
+  } */
 
   switch (rule) {
     case InferenceRule::STRUCT_INDUCTION_AXIOM:

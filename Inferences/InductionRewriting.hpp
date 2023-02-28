@@ -86,10 +86,11 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
   void output();
 
-  static LitArgPairIter getTermIterator(Clause* premise, Ordering& ord, bool downward, bool singleLitInd);
+  static LitArgPairIter getTermIterator(Clause* premise, Ordering& ord, bool downward, bool goalOriented);
   static LitArgPairIter getLHSIterator(Clause* premise, const Options& opt, Ordering& ord, bool downward);
   static void markTheoryAxiomsForLemmaGeneration();
   static bool isTermViolatingBound(Term* bound, Term* t, Ordering& ord, bool downward);
+  static bool goalOriented(const Options& opt);
 
 private:
   ClauseIterator perform(
@@ -100,14 +101,14 @@ private:
   bool filterByHeuristics(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    ResultSubstitutionSP subst, const Options& opt);
+    ResultSubstitutionSP subst);
 
   TermIndex* _lhsIndex;
   TermIndex* _termIndex;
   DHMap<Clause*, unsigned> _eqs;
   const Options& _opt;
   bool _downward;
-  bool _singleLiteralInduction;
+  bool _goalOriented;
 };
 
 }

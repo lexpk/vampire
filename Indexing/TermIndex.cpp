@@ -242,13 +242,16 @@ void RewritingLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+RewritingSubtermIndex::RewritingSubtermIndex(TermIndexingStructure* is, const Options& opt, Ordering& ord, bool downward)
+: TermIndex(is), _opt(opt), _ord(ord), _downward(downward), _goalOriented(InductionRewriting::goalOriented(opt)) {}
+
 void RewritingSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("RewritingSubtermIndex::handleClause");
 
   TIME_TRACE("induction rewriting index maintenance");
 
-  auto it = InductionRewriting::getTermIterator(c, _ord, _downward, !_opt.nonUnitInduction() || _opt.splitting());
+  auto it = InductionRewriting::getTermIterator(c, _ord, _downward, _goalOriented);
   while (it.hasNext()) {
     auto kv = it.next();
     if (kv.second.isVar()) {

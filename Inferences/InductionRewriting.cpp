@@ -114,6 +114,12 @@ bool InductionRewriting::isTermViolatingBound(Term* bound, Term* t, Ordering& or
   return comparisonViolates(comp, downward);
 }
 
+bool InductionRewriting::goalOriented(const Options& opt)
+{
+  return opt.symmetryBreakingParamodulation() == Options::SymmetryBreakingParamodulation::GOAL_ORIENTED
+    && (!opt.nonUnitInduction() || opt.splitting());
+}
+
 LitArgPairIter getIterator(Ordering& ord, Clause* premise, bool downward)
 {
   CALL("InductionRewriting::getIterator");
@@ -206,25 +212,25 @@ bool canUseLHSForRewrite(LitArgPair kv, Clause* premise, const Options& opt, boo
 }
 
 InductionRewriting::InductionRewriting(bool downward, const Options& opt)
-  : _opt(opt), _downward(downward), _singleLiteralInduction(!opt.nonUnitInduction() || opt.splitting()) {}
+  : _opt(opt), _downward(downward), _goalOriented(goalOriented(opt)) {}
 
 void InductionRewriting::markTheoryAxiomsForLemmaGeneration()
 {
   k_theoryAxiomsForLemmaGeneration = true;
 }
 
-LitArgPairIter InductionRewriting::getTermIterator(Clause* premise, Ordering& ord, bool downward, bool singleLitInd)
+LitArgPairIter InductionRewriting::getTermIterator(Clause* premise, Ordering& ord, bool downward, bool goalOriented)
 {
   CALL("InductionRewriting::getTermIterator");
 #if INDUCTION_MODE
-  if (!downward && singleLitInd && !isSingleLiteralGoalClause(premise)) {
+  if (goalOriented && !downward && !isSingleLiteralGoalClause(premise)) {
     return LitArgPairIter::getEmpty();
   }
 #endif
   return pvi(iterTraits(getIterator(ord, premise, downward))
 #if INDUCTION_MODE
-    .filter([downward,&ord,singleLitInd,premise](LitArgPair kv) {
-      if (downward && singleLitInd && kv.first->isEquality() && !isSingleLiteralGoalClause(premise)) {
+    .filter([downward,&ord,goalOriented,premise](LitArgPair kv) {
+      if (downward && goalOriented && kv.first->isEquality() && !isSingleLiteralGoalClause(premise)) {
         auto lit = kv.first;
         auto lhs = kv.second;
         auto rhs = EqHelper::getOtherEqualitySide(lit, TermList(lhs));
@@ -299,7 +305,7 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
   }
 
   // forward result
-  auto fwRes = iterTraits(getTermIterator(premise, ord, _downward, _singleLiteralInduction))
+  auto fwRes = iterTraits(getTermIterator(premise, ord, _downward, _goalOriented))
     .flatMap([](LitArgPair kv) {
       if (kv.second.isVar()) {
         return VirtualIterator<pair<LitArgPair, TermList>>::getEmpty();
@@ -409,7 +415,7 @@ ClauseIterator InductionRewriting::perform(
   }
 
 #if INDUCTION_MODE
-  if (_opt.lemmaGenerationHeuristics() && filterByHeuristics(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, subst, _opt)) {
+  if (_opt.lemmaGenerationHeuristics() && filterByHeuristics(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, subst)) {
     return ClauseIterator::getEmpty();
   }
 #endif
@@ -429,13 +435,15 @@ ClauseIterator InductionRewriting::perform(
   TermList tgtTermS = subst->applyTo(tgtTerm, eqIsResult);
   ASS(rwArg.isTerm());
   Literal* rwLitS = subst->applyTo(rwLit, !eqIsResult);
-  if (_downward && _singleLiteralInduction && rwLitS->isEquality() && !isSingleLiteralGoalClause(rwClause)) {
+#if INDUCTION_MODE
+  if (_goalOriented && _downward && rwLitS->isEquality() && !isSingleLiteralGoalClause(rwClause)) {
     auto other = EqHelper::getOtherEqualitySide(rwLitS, TermList(rwArgS));
     auto comp = _salg->getOrdering().compare(other, rwArgS);
     if (Ordering::isGorGEorE(comp)) {
       return ClauseIterator::getEmpty();
     }
   }
+#endif
 
   if (!areEqualitySidesOriented(rwTermS, tgtTermS, _salg->getOrdering(), _downward)) {
     return ClauseIterator::getEmpty();
@@ -541,7 +549,7 @@ ClauseIterator InductionRewriting::perform(
       // }
       // cout << "result " << *newCl << endl << endl;
       ASS(newRwArg.isTerm());
-      if (_opt.symmetryBreakingParamodulation()) {
+      if (_opt.symmetryBreakingParamodulation()!=Options::SymmetryBreakingParamodulation::OFF) {
         newCl->setRewritingBound(newRwArg.term(), !_downward);
       }
       bool boundEqual = false;
@@ -577,13 +585,14 @@ vset<unsigned> getSkolems(Literal* lit) {
 bool InductionRewriting::filterByHeuristics(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    ResultSubstitutionSP subst, const Options& opt)
+    ResultSubstitutionSP subst)
 {
   // if (eqClause->isPureTheoryDescendant() || rwClause->isPureTheoryDescendant()) {
   //   return true;
   // }
   if (eqLHS.isVar()) {
     return true;
+    // return !_downward || !(eqClause->getLiteralPosition(eqLit) < eqClause->numSelected());
   }
   vset<unsigned> eqSkolems = getSkolems(eqLit);
   if (!eqSkolems.empty()) {

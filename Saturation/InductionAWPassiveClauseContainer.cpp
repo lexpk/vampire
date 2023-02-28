@@ -45,7 +45,8 @@ float InductionQueue::calculateValue(Clause* cl)
       if (indcl && InductionHelper::isInductionLiteral(lit)) {
         nonindlits--;
       }
-      w += lit->iweight(_restrictions);
+      // w += lit->iweight(_restrictions);
+      w += lit->weight();
     }
     if (!indcl) {
       w *= NON_INDUCTION_CLAUSE_COEFF;

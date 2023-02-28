@@ -259,7 +259,7 @@ Clause* InductionResolution::perform(Clause* queryCl, Literal* queryLit, SLQuery
   // cout << "RESOLUTION BETWEEN " << *queryCl << endl
   //      << "AND " << *qr.clause << endl
   //      << "RESULT " << *res << endl;
-  if (opt.symmetryBreakingParamodulation()) {
+  if (opt.symmetryBreakingParamodulation()!=Options::SymmetryBreakingParamodulation::OFF) {
     res->setRewritingBound(queryLitS, false);
   }
   bool boundEqual = false;

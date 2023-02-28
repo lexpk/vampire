@@ -263,6 +263,11 @@ public:
     MARKED,
     ALL,
   };
+  enum class SymmetryBreakingParamodulation : unsigned int {
+    OFF,
+    GOAL_ORIENTED,
+    ON,
+  };
 
   enum class PredicateSineLevels : unsigned int {
     NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
@@ -2355,7 +2360,7 @@ public:
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
   LemmaGeneration inductionEquationalLemmaGeneration() const { return _inductionEquationalLemmaGeneration.actualValue; }
-  bool symmetryBreakingParamodulation() const { return _symmetryBreakingParamodulation.actualValue; }
+  SymmetryBreakingParamodulation symmetryBreakingParamodulation() const { return _symmetryBreakingParamodulation.actualValue; }
   bool inductionRedundancyCheck() const { return _inductionRedundancyCheck.actualValue; }
   bool lemmaGenerationHeuristics() const { return _lemmaGenerationHeuristics.actualValue; }
   bool inductionPostponement() const { return _inductionPostponement.actualValue; }
@@ -2674,7 +2679,7 @@ private:
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
   BoolOptionValue _nonUnitInduction;
   ChoiceOptionValue<LemmaGeneration> _inductionEquationalLemmaGeneration;
-  BoolOptionValue _symmetryBreakingParamodulation;
+  ChoiceOptionValue<SymmetryBreakingParamodulation> _symmetryBreakingParamodulation;
   BoolOptionValue _lemmaGenerationHeuristics;
   BoolOptionValue _inductionRedundancyCheck;
   BoolOptionValue _inductionPostponement;

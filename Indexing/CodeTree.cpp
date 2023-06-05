@@ -112,8 +112,8 @@ void CodeTree::MatchInfo::destroy(unsigned bindCnt)
   //We have to get sizeof(MatchInfo) + (bindCnt-1)*sizeof(TermList)
   //this way, because bindCnt-1 wouldn't behave well for
   //bindCnt==0 on x64 platform.
-  size_t size=sizeof(MatchInfo)+bindCnt*sizeof(TermList);
-  size-=sizeof(TermList);
+  //size_t size=sizeof(MatchInfo)+bindCnt*sizeof(TermList);
+  //size-=sizeof(TermList);
 
   DEALLOC_KNOWN(this, size,"CodeTree::MatchInfo");
 }
@@ -169,7 +169,7 @@ CodeTree::ILStruct::~ILStruct()
   }
 
   if(globalVarNumbers) {
-    size_t gvSize=sizeof(unsigned)*varCnt;
+    //size_t gvSize=sizeof(unsigned)*varCnt;
     DEALLOC_KNOWN(globalVarNumbers, gvSize,
 		"CodeTree::ILStruct::globalVarNumbers");
     if(sortedGlobalVarNumbers) {
@@ -468,7 +468,7 @@ CodeTree::FixedSearchStruct::~FixedSearchStruct()
 {
   CALL("CodeTree::FixedSearchStruct::~FixedSearchStruct");
 
-  size_t tgtSize=sizeof(CodeOp*)*length;
+  //size_t tgtSize=sizeof(CodeOp*)*length;
     DEALLOC_KNOWN(targets, tgtSize, "CodeTree::FixedSearchStruct::targets");
 }
 
@@ -487,7 +487,7 @@ CodeTree::GroundTermSearchStruct::~GroundTermSearchStruct()
 {
   CALL("CodeTree::GroundTermSearchStruct::~GroundTermSearchStruct");
 
-  size_t valSize=sizeof(Term*)*length;
+  //size_t valSize=sizeof(Term*)*length;
   DEALLOC_KNOWN(values, valSize, "CodeTree::GroundTermSearchStruct::values");
 }
 
@@ -544,7 +544,7 @@ CodeTree::FnSearchStruct::~FnSearchStruct()
 {
   CALL("CodeTree::FnSearchStruct::~FnSearchStruct");
 
-  size_t valSize=sizeof(unsigned)*length;
+  //size_t valSize=sizeof(unsigned)*length;
   DEALLOC_KNOWN(values, valSize, "CodeTree::SearchStruct::values");
 }
 

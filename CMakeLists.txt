@@ -546,6 +546,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
+    Shell/Dedukti.hpp
+    Shell/Dedukti.cpp
     Shell/DistinctProcessor.cpp
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp

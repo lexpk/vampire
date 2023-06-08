@@ -52,6 +52,7 @@
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CLTBModeLearning.hpp"
 #include "Shell/CommandLine.hpp"
+#include "Shell/Dedukti.hpp"
 //#include "Shell/EqualityProxy.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
@@ -436,6 +437,10 @@ void outputMode()
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   env.beginOutput();
+  bool dedukti = env.options->proof() == Options::Proof::DEDUKTI;
+  if(dedukti)
+    Dedukti::outputPrelude(env.out());
+
   //outputSymbolDeclarations also deals with sorts for now
   //UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
@@ -443,7 +448,10 @@ void outputMode()
 
   while (units.hasNext()) {
     Unit* u = units.next();
-    env.out() << TPTPPrinter::toString(u) << "\n";
+    if(dedukti)
+      Dedukti::outputAxiom(env.out(), u);
+    else
+      env.out() << TPTPPrinter::toString(u) << "\n";
   }
   env.endOutput();
 

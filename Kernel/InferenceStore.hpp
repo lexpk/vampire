@@ -85,10 +85,74 @@ public:
 
   vstring getUnitIdStr(Unit* cs);
 
+  struct ProofPrinter
+  {
+    CLASS_NAME(ProofPrinter);
+    USE_ALLOCATOR(ProofPrinter);
+
+    ProofPrinter(ostream& out, InferenceStore* is)
+    : _is(is), out(out)
+    {
+      CALL("InferenceStore::ProofPrinter::ProofPrinter");
+
+      outputAxiomNames=env.options->outputAxiomNames();
+      delayPrinting=true;
+    }
+
+    void scheduleForPrinting(Unit* us)
+    {
+      CALL("InferenceStore::ProofPrinter::scheduleForPrinting");
+
+      outKernel.push(us);
+      handledKernel.insert(us);
+    }
+
+    virtual ~ProofPrinter() {}
+
+    virtual void print()
+    {
+      CALL("InferenceStore::ProofPrinter::print");
+
+      while(outKernel.isNonEmpty()) {
+        Unit* cs=outKernel.pop();
+        handleStep(cs);
+      }
+      if(delayPrinting) printDelayed();
+    }
+
+  protected:
+
+    virtual bool hideProofStep(InferenceRule rule)
+    {
+      return false;
+    }
+
+    void requestProofStep(Unit* prem)
+    {
+      if (!handledKernel.contains(prem)) {
+        handledKernel.insert(prem);
+        outKernel.push(prem);
+      }
+    }
+
+    virtual void printStep(Unit* cs);
+    void handleStep(Unit* cs);
+    void printDelayed();
+
+    Stack<Unit*> outKernel;
+    Set<Unit*> handledKernel; // use UnitSpec to provide its own hash and equals
+    Stack<Unit*> delayed;
+
+    InferenceStore* _is;
+    ostream& out;
+
+    bool outputAxiomNames;
+    bool delayPrinting;
+  };
+
 private:
   InferenceStore();
 
-  struct ProofPrinter;
   struct TPTPProofPrinter;
   struct ProofCheckPrinter;
   struct ProofPropertyPrinter;

@@ -23,6 +23,7 @@
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Sort.hpp"
 
+#include "Shell/Dedukti.hpp"
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -261,196 +262,133 @@ struct UnitNumberComparator
   }
 };
 
-struct InferenceStore::ProofPrinter
+void InferenceStore::ProofPrinter::printStep(Unit* cs)
 {
-  CLASS_NAME(InferenceStore::ProofPrinter);
-  USE_ALLOCATOR(InferenceStore::ProofPrinter);
-  
-  ProofPrinter(ostream& out, InferenceStore* is)
-  : _is(is), out(out)
-  {
-    CALL("InferenceStore::ProofPrinter::ProofPrinter");
+  CALL("InferenceStore::ProofPrinter::printStep");
 
-    outputAxiomNames=env.options->outputAxiomNames();
-    delayPrinting=true;
+  InferenceRule rule;
+  UnitIterator parents=_is->getParents(cs, rule);
+
+  cs->inference().updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
+
+  // TODO: This does not reflect the way we count applications in Induction
+  // since there an entire induction formula resolved is 1 application, here
+  // each resolution step counts as one, counting potentially much more
+  // switch (rule) {
+  //   case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
+  //     env.statistics->generalizedInductionApplicationInProof++;
+  //   case InferenceRule::INDUCTION_HYPERRESOLUTION:
+  //     env.statistics->inductionApplicationInProof++;
+  //     break;
+  //   default:
+  //     ;
+  // }
+  switch (rule) {
+    case InferenceRule::STRUCT_INDUCTION_AXIOM:
+      env.statistics->structInductionInProof++;
+      break;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      env.statistics->intInfInductionInProof++;
+      break;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      env.statistics->intFinInductionInProof++;
+      break;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      env.statistics->intDBInductionInProof++;
+      break;
+    default:
+      ;
+  }
+  switch (rule) {
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+      env.statistics->intInfUpInductionInProof++;
+      break;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      env.statistics->intInfDownInductionInProof++;
+      break;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+      env.statistics->intFinUpInductionInProof++;
+      break;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      env.statistics->intFinDownInductionInProof++;
+      break;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      env.statistics->intDBUpInductionInProof++;
+      break;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      env.statistics->intDBDownInductionInProof++;
+      break;
+    default:
+      ;
   }
 
-  void scheduleForPrinting(Unit* us)
-  {
-    CALL("InferenceStore::ProofPrinter::scheduleForPrinting");
-
-    outKernel.push(us);
-    handledKernel.insert(us);
+  if (cs->isClause()) {
+    Clause* cl=cs->asClause();
+    out << cl->toString() << vstring("\n");
   }
-
-  virtual ~ProofPrinter() {}
-
-  virtual void print()
-  {
-    CALL("InferenceStore::ProofPrinter::print");
-
-    while(outKernel.isNonEmpty()) {
-      Unit* cs=outKernel.pop();
-      handleStep(cs);
+  else {
+    out << _is->getUnitIdStr(cs) << ". ";
+    FormulaUnit* fu=static_cast<FormulaUnit*>(cs);
+    if (env.colorUsed && fu->inheritedColor() != COLOR_INVALID) {
+      out << " IC" << fu->inheritedColor() << " ";
     }
-    if(delayPrinting) printDelayed();
-  }
+    out << fu->formula()->toString() << ' ';
 
-protected:
+    out <<"["<<Kernel::ruleName(rule);
 
-  virtual bool hideProofStep(InferenceRule rule)
-  {
-    return false;
-  }
-
-  void requestProofStep(Unit* prem)
-  {
-    if (!handledKernel.contains(prem)) {
-      handledKernel.insert(prem);
-      outKernel.push(prem);
-    }
-  }
-
-  virtual void printStep(Unit* cs)
-  {
-    CALL("InferenceStore::ProofPrinter::printStep");
-
-    InferenceRule rule;
-    UnitIterator parents=_is->getParents(cs, rule);
-
-    cs->inference().updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
-
-    // TODO: This does not reflect the way we count applications in Induction
-    // since there an entire induction formula resolved is 1 application, here
-    // each resolution step counts as one, counting potentially much more
-    // switch (rule) {
-    //   case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
-    //     env.statistics->generalizedInductionApplicationInProof++;
-    //   case InferenceRule::INDUCTION_HYPERRESOLUTION:
-    //     env.statistics->inductionApplicationInProof++;
-    //     break;
-    //   default:
-    //     ;
-    // }
-    switch (rule) {
-      case InferenceRule::STRUCT_INDUCTION_AXIOM:
-        env.statistics->structInductionInProof++;
-        break;
-      case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-        env.statistics->intInfInductionInProof++;
-        break;
-      case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-        env.statistics->intFinInductionInProof++;
-        break;
-      case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-        env.statistics->intDBInductionInProof++;
-        break;
-      default:
-        ;
-    }
-    switch (rule) {
-      case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-        env.statistics->intInfUpInductionInProof++;
-        break;
-      case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-        env.statistics->intInfDownInductionInProof++;
-        break;
-      case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-        env.statistics->intFinUpInductionInProof++;
-        break;
-      case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-        env.statistics->intFinDownInductionInProof++;
-        break;
-      case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-        env.statistics->intDBUpInductionInProof++;
-        break;
-      case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-        env.statistics->intDBDownInductionInProof++;
-        break;
-      default:
-        ;
-    }
-
-    if (cs->isClause()) {
-      Clause* cl=cs->asClause();
-      out << cl->toString() << vstring("\n");
-    }
-    else {
-      out << _is->getUnitIdStr(cs) << ". ";
-      FormulaUnit* fu=static_cast<FormulaUnit*>(cs);
-      if (env.colorUsed && fu->inheritedColor() != COLOR_INVALID) {
-        out << " IC" << fu->inheritedColor() << " ";
+    if (outputAxiomNames && rule==InferenceRule::INPUT) {
+      ASS(!parents.hasNext()); //input clauses don't have parents
+      vstring name;
+      if (Parse::TPTP::findAxiomName(cs, name)) {
+        out << " " << name;
       }
-      out << fu->formula()->toString() << ' ';
-
-      out <<"["<<Kernel::ruleName(rule);
-
-      if (outputAxiomNames && rule==InferenceRule::INPUT) {
-        ASS(!parents.hasNext()); //input clauses don't have parents
-        vstring name;
-        if (Parse::TPTP::findAxiomName(cs, name)) {
-          out << " " << name;
-        }
-      }
-
-      bool first=true;
-      while(parents.hasNext()) {
-        Unit* prem=parents.next();
-        out << (first ? ' ' : ',');
-        out << _is->getUnitIdStr(prem);
-        first=false;
-      }
-      out << "]" << endl;
     }
-  }
 
-  void handleStep(Unit* cs)
-  {
-    CALL("InferenceStore::ProofPrinter::handleStep");
-    InferenceRule rule;
-    UnitIterator parents=_is->getParents(cs, rule);
-
+    bool first=true;
     while(parents.hasNext()) {
       Unit* prem=parents.next();
-      ASS(prem!=cs);
-      requestProofStep(prem);
+      out << (first ? ' ' : ',');
+      out << _is->getUnitIdStr(prem);
+      first=false;
     }
+    out << "]" << endl;
+  }
+}
 
-    if (!hideProofStep(rule)) {
-      if(delayPrinting) delayed.push(cs);
-      else printStep(cs);
-    }
+void InferenceStore::ProofPrinter::handleStep(Unit* cs)
+{
+  CALL("InferenceStore::ProofPrinter::handleStep");
+  InferenceRule rule;
+  UnitIterator parents=_is->getParents(cs, rule);
+
+  while(parents.hasNext()) {
+    Unit* prem=parents.next();
+    ASS(prem!=cs);
+    requestProofStep(prem);
   }
 
-  void printDelayed()
-  {
-    CALL("InferenceStore::ProofPrinter::printDelayed");
+  if (!hideProofStep(rule)) {
+    if(delayPrinting) delayed.push(cs);
+    else printStep(cs);
+  }
+}
 
-    // Sort
-    sort<UnitNumberComparator>(delayed.begin(),delayed.end());
+void InferenceStore::ProofPrinter::printDelayed()
+{
+  CALL("InferenceStore::ProofPrinter::printDelayed");
 
-    // Print
-    for(unsigned i=0;i<delayed.size();i++){
-      printStep(delayed[i]);
-    }
+  // Sort
+  sort<UnitNumberComparator>(delayed.begin(),delayed.end());
 
+  // Print
+  for(unsigned i=0;i<delayed.size();i++){
+    printStep(delayed[i]);
   }
 
-
-
-  Stack<Unit*> outKernel;
-  Set<Unit*> handledKernel; // use UnitSpec to provide its own hash and equals
-  Stack<Unit*> delayed;
-
-  InferenceStore* _is;
-  ostream& out;
-
-  bool outputAxiomNames;
-  bool delayPrinting;
-};
+}
 
 struct InferenceStore::ProofPropertyPrinter
 : public InferenceStore::ProofPrinter
@@ -1009,8 +947,9 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
     return new TPTPProofPrinter(out, this);
   case Options::Proof::PROPERTY:
     return new ProofPropertyPrinter(out,this);
-  case Options::Proof::OFF:
   case Options::Proof::DEDUKTI:
+    return new Dedukti::ProofPrinter(out, this);
+  case Options::Proof::OFF:
     return nullptr;
   }
   ASSERTION_VIOLATION;

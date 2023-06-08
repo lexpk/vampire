@@ -34,6 +34,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/Dedukti.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -235,6 +236,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       next++;    
   }
   }
+  unsigned leftIndex, rightIndex;
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
     if(curr!=queryLit) {
@@ -265,6 +267,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       (*res)[next] = newLit;
       next++;
     }
+    else
+      leftIndex = i;
   }
 
   Literal* qrLitAfter = 0;
@@ -303,6 +307,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       (*res)[next] = newLit;
       next++;
     }
+    else
+      rightIndex = i;
   }
 
   if(withConstraints){
@@ -313,6 +319,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   //cout << "RESULT " << res->toString() << endl;
+  if(env.options->proof() == Options::Proof::DEDUKTI)
+    Dedukti::registerInference(res, new Dedukti::BinaryResolutionInference(leftIndex, rightIndex));
 
   return res;
 }

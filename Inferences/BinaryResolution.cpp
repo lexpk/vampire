@@ -320,7 +320,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   //cout << "RESULT " << res->toString() << endl;
   if(env.options->proof() == Options::Proof::DEDUKTI)
-    Dedukti::registerInference(res, new Dedukti::BinaryResolutionInference(leftIndex, rightIndex));
+    Dedukti::registerUnit(res, new Dedukti::BinaryResolution(leftIndex, rightIndex));
 
   return res;
 }

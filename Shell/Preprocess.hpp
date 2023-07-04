@@ -54,6 +54,7 @@ private:
   void clausify(Problem& prb);
 
   void newCnf(Problem& prb);
+  void intuitionistic(Problem &prb);
 
   /** Options used in the normalisation */
   const Options& _options;

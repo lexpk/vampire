@@ -653,6 +653,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "rectify";
   case InferenceRule::CLOSURE:
     return "closure";
+  case InferenceRule::INTUITIONISTIC:
+    return "intuitionistic";
   case InferenceRule::FLATTEN:
     return "flattening";
   case InferenceRule::FOOL_ELIMINATION:

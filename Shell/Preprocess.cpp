@@ -26,6 +26,7 @@
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
 #include "NewCNF.hpp"
+#include "Intuitionistic.hpp"
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
@@ -215,6 +216,13 @@ void Preprocess::preprocess(Problem& prb)
   if (!_clausify && !_stillSimplify) {
     return;
   }
+
+  if (_options.intuitionistic()) {
+    if (env.options->showPreprocessing())  
+      env.out() << "Applying Kripke Semantics:" << std::endl;
+
+    intuitionistic(prb);
+  }  
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
@@ -648,6 +656,20 @@ void Preprocess::newCnf(Problem& prb)
   }
   prb.reportFormulasEliminated();
 } 
+
+
+/**
+ * Apply intuitionistic Kripke semantics to the problem @c prb
+ */
+void Preprocess::intuitionistic(Problem& prb) {
+  CALL("Preprocess::intuitionistic");
+
+  env.statistics->phase=Statistics::INTUITIONISTIC;
+
+  UnitList semantics = Intuitionistic::intuitionisticSemantics();
+  prb.addUnits(&semantics);
+} // Peprocess::intuitionistic
+
 
 /**
  * Preprocess the unit using options from opt. Preprocessing may

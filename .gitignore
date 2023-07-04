@@ -39,3 +39,6 @@ cmake-build
 
 # vim swap files
 **/.*.swp
+
+# dev config
+compose-dev.yaml

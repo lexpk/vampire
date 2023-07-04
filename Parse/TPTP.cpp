@@ -1261,7 +1261,7 @@ void TPTP::unitList()
     return;
   }
   if (name == "fof") {
-      _states.push(FOF);
+    _states.push(FOF);
     resetToks();
     return;
   }
@@ -3393,7 +3393,8 @@ void TPTP::endFormula()
   case NOT:
     f = _formulas.pop();
     // This gets rid of the annoying step in proof output where ~(L) is flattend to (~L)
-    if(f->connective()==LITERAL){
+    // which is not valid in intuitionistic logic, since ~~A is not equivalent to A.
+    if(f->connective()==LITERAL && !env.options->intuitionistic()){
       Literal* oldLit = static_cast<AtomicFormula*>(f)->literal();
       Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
       _formulas.push(new AtomicFormula(newLit));
@@ -4145,7 +4146,7 @@ void TPTP::simpleFormula()
 {
   CALL("TPTP::simpleFormula");
 
-  Token tok = getTok(0);
+   Token tok = getTok(0);
 
   switch (tok.tag) {
   case T_NOT:

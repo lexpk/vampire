@@ -2386,6 +2386,7 @@ public:
   void setProof(Proof p) { _proof.actualValue = p; }
     
   bool newCNF() const { return _newCNF.actualValue; }
+  bool intuitionistic() const { return _intuitionistic.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
@@ -2826,6 +2827,7 @@ private:
   InputFileOptionValue _inputFile;
 
   BoolOptionValue _newCNF;
+  BoolOptionValue _intuitionistic;
   BoolOptionValue _inlineLet;
 
   BoolOptionValue _manualClauseSelection;

@@ -580,6 +580,12 @@ void Options::init()
     _newCNF.tag(OptionTag::PREPROCESSING);
     _newCNF.setRandomChoices({"on","off"});
 
+    _intuitionistic = BoolOptionValue("intuitionistic","intuitionistic",false);
+    _intuitionistic.description="Apply Kripke Semantics to test for intuitionistic validity.";
+    _lookup.insert(&_intuitionistic);
+    _intuitionistic.addProblemConstraint(onlyFirstOrder());
+    _intuitionistic.tag(OptionTag::PREPROCESSING);
+
     _inlineLet = BoolOptionValue("inline_let","ile",false);
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);

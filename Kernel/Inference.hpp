@@ -151,6 +151,8 @@ enum class InferenceRule : unsigned char {
   /** replace formula F by (A x1...xn)F, where x1 ... xn are all
    *  free variables of F */
   CLOSURE,
+  /** obtained by expressing intuitionistic Kripke semantics of formula*/
+  INTUITIONISTIC,
   /** obtained by flattening (quantifiers, junctions) */
   FLATTEN,
   /** obtained by transformation into ENNF */

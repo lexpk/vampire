@@ -4,8 +4,8 @@
 cmake_minimum_required (VERSION 3.12.0)
 project(Vampire)
 
-# require the compiler to use C++14
-set(CMAKE_CXX_STANDARD 14)
+# require the compiler to use C++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -546,6 +546,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
+    Shell/Intuitionistic.cpp
     Shell/DistinctProcessor.cpp
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp
@@ -599,6 +600,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
+    Shell/Intuitionistic.hpp
     Shell/DistinctProcessor.hpp
     Shell/DistinctGroupExpansion.hpp
     Shell/EqResWithDeletion.hpp

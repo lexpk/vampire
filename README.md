@@ -1,5 +1,8 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/vprover/vampire)
 
+*In this fork of the Vampire theorem prover (vprover/vampire) I implement theorem proving capabilities for intuitionistic logic.
+Currently cnf and fof dialects of tptp without sorts are supported.*
+
 # Vampire
 This is the main source repository of the [Vampire](https://vprover.github.io) project, an advanced tool for automated reasoning.
 The following is for end-users of Vampire: new developers should read `HACKING.md` as well.

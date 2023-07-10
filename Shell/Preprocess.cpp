@@ -218,10 +218,11 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.intuitionistic()) {
+    env.statistics->phase=Statistics::INTUITIONISTIC;
     if (env.options->showPreprocessing())  
       env.out() << "Applying Kripke Semantics:" << std::endl;
-
-    intuitionistic(prb);
+      
+    Intuitionistic::intuitionistic(prb);
   }  
 
   if (prb.mayHaveFormulas()) {
@@ -656,19 +657,6 @@ void Preprocess::newCnf(Problem& prb)
   }
   prb.reportFormulasEliminated();
 } 
-
-
-/**
- * Apply intuitionistic Kripke semantics to the problem @c prb
- */
-void Preprocess::intuitionistic(Problem& prb) {
-  CALL("Preprocess::intuitionistic");
-
-  env.statistics->phase=Statistics::INTUITIONISTIC;
-
-  UnitList semantics = Intuitionistic::intuitionisticSemantics();
-  prb.addUnits(&semantics);
-} // Peprocess::intuitionistic
 
 
 /**

@@ -653,8 +653,14 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "rectify";
   case InferenceRule::CLOSURE:
     return "closure";
-  case InferenceRule::INTUITIONISTIC:
-    return "intuitionistic";
+  case InferenceRule::KRIPKE_PO:
+    return "kripke partial order";
+  case InferenceRule::KRIPKE_EXISTENCE:
+    return "kripke existence";
+  case InferenceRule::KRIPKE_SEMANTICS_CLAUSE:
+    return "intuitionistic kripke semantics";
+  case InferenceRule::KRIPKE_SEMANTICS_FORMULA:
+    return "intuitionistic kripke semantics";
   case InferenceRule::FLATTEN:
     return "flattening";
   case InferenceRule::FOOL_ELIMINATION:

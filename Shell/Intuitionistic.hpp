@@ -21,6 +21,7 @@ namespace Kernel {
 };
 
 #include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"	
 
 using namespace Kernel;
 
@@ -32,15 +33,15 @@ namespace Shell {
 class Intuitionistic
 {
 public:
-  static UnitList intuitionisticSemantics();
-  static FormulaUnit* intuitionistic(FormulaUnit* unit);
-  static Formula* intuitionistic(Formula*, bool polarity, Term* worldPrefix);
-  static char existencePredicateName[7];
-  static constexpr char kripkePartialOrderName[15] = "kripkeLessThan";
+  static void intuitionistic(Problem& prb);
+  static constexpr char kripkePartialOrderName[15] = "kripkeLEQ";
+  static constexpr char existencePredicateName[14] = "existsAtWorld";
 private:
-  static Literal* intuitionistic(Literal*);
-  static TermList intuitionistic(TermList, bool polarity, Term* worldPrefix);
-  static FormulaList* intuitionistic(FormulaList*, bool polarity, Term* worldPrefix);
+  static FormulaUnit* intuitionistic(FormulaUnit* fu);
+  static Formula* intuitionistic(Formula* f, unsigned varCnt, unsigned kripkePartialOrder, unsigned existsPredicate);
+  static Literal* intuitionistic(Literal* l, unsigned varCnt);
+  static FormulaUnit* kripkePartialOrderAxiomatization(unsigned kripkePartialOrder);
+  static FormulaUnit* existenceAxiomatization(unsigned existsPredicate);
 }; // class Intuitionistic
 
 }

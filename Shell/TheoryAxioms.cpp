@@ -115,7 +115,7 @@ void TheoryAxioms::addCommutativity(Interpretation op)
  */
 void TheoryAxioms::addAssociativity(Interpretation op)
 {
-  CALL("TheoryAxioms::addCommutativity");
+  CALL("TheoryAxioms::addAssociativity");
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 

@@ -508,6 +508,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "SInE selection";
   case INCLUDING_THEORY_AXIOMS:
     return "Including theory axioms";
+  case INTUITIONISTIC:
+    return "Applying intuitionistic Kripke Semantics";
   case PREPROCESS_1:
     return "Preprocessing 1";
   case PREDIACTE_DEFINITION_MERGING:

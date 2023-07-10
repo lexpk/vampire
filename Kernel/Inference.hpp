@@ -151,14 +151,15 @@ enum class InferenceRule : unsigned char {
   /** replace formula F by (A x1...xn)F, where x1 ... xn are all
    *  free variables of F */
   CLOSURE,
-  /** obtained by expressing intuitionistic Kripke semantics of formula*/
-  INTUITIONISTIC,
   /** obtained by flattening (quantifiers, junctions) */
   FLATTEN,
   /** obtained by transformation into ENNF */
   ENNF,
   /** obtained by transformation into NNF */
   NNF,
+  /** applying Kripke Semantics for intuitionistic logic*/
+  KRIPKE_SEMANTICS_CLAUSE,
+  KRIPKE_SEMANTICS_FORMULA,
   /** reduce a formula containing false or true, for example
    *  false & A ---> false */
   REDUCE_FALSE_TRUE,
@@ -532,6 +533,10 @@ enum class InferenceRule : unsigned char {
   COMBINATOR_AXIOM,
   
   FUNC_EXT_AXIOM,
+
+  /** obtained by expressing intuitionistic Kripke semantics of formula, see intutionistic.cpp*/
+  KRIPKE_PO,
+  KRIPKE_EXISTENCE,
 
   /** beginning of proxy funxtion axioms marker --*/
   PROXY_AXIOM,
